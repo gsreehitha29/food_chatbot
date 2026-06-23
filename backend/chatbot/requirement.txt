@@ -1,0 +1,13 @@
+langgraph
+langchain
+langchain-google-genai
+python-dotenv
+fastapi 
+uvicorn 
+python-socketio
+selenium
+pandas
+fastmcp
+pymongo
+gspread 
+google-auth
