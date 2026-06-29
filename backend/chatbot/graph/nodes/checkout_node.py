@@ -1,52 +1,97 @@
 from adapter.mcp_adapter import order_client, sheets_client
+from services.llm import llm
+
 
 async def checkout_node(state):
 
     user_id = state.get("conversation_id", "123")
 
+    # -------------------------
+    # GET CART
+    # -------------------------
     async with order_client:
-        checkout_res = await order_client.call_tool(
-            "checkout_cart",
+        cart_result = await order_client.call_tool(
+            "get_cart",
+            {"user_id": user_id}
+        )
+
+    cart = cart_result.structured_content if hasattr(cart_result, "structured_content") else cart_result
+    items = cart.get("items", [])
+    total = cart.get("grand_total", 0)
+
+    # -------------------------
+    # LOG ORDER
+    # -------------------------
+    async with sheets_client:
+        order_result = await sheets_client.call_tool(
+            "log_order",
             {
                 "user_id": user_id,
-                "payment_method": "Cash on Delivery",
-                "delivery_address": "Ordered via SpiceBot Chat"
+                "items": items,
+                "total": total
             }
         )
 
-    order_data = checkout_res.data
-    if not order_data or "error" in order_data:
-        err = order_data.get("error") if order_data else "Cart is empty or not found"
-        return {
-            "response": f"❌ Could not place order: {err}"
-        }
+    order_id = order_result.data["order_id"] if hasattr(order_result, "data") else "N/A"
 
-    order_id = order_data["order_id"]
-    items = []
-    for item in order_data.get("items", []):
-        items.append({
-            "item": item["item_name"],
-            "quantity": item["quantity"],
-            "price": item["price"],
-            "total": item["price"] * item["quantity"]
-        })
-    total = order_data["final_amount"]
+    # -------------------------
+    # LLM RESPONSE (HTML STRICT)
+    # -------------------------
+    SYSTEM_PROMPT = """
+You are a restaurant assistant chatbot.
 
-    try:
-        async with sheets_client:
-            await sheets_client.call_tool(
-                "log_order",
-                {
-                    "user_id": user_id,
-                    "items": items,
-                    "total": total
-                }
-            )
-    except Exception as e:
-        print("Failed to log order to Google Sheets:", e)
+YOU MUST OUTPUT ONLY CLEAN HTML.
+
+========================
+RULES
+========================
+- Output ONLY HTML
+- No Markdown
+- No JSON
+- No explanations
+- Must be friendly and professional
+- Always end with a follow-up question
+"""
+
+    USER_PROMPT = f"""
+The order has been successfully placed.
+
+Order ID: {order_id}
+Total Amount: ₹{total}
+
+Items:
+{items}
+
+Generate a friendly HTML confirmation message.
+"""
+
+    response = llm.invoke([
+        ("system", SYSTEM_PROMPT),
+        ("human", USER_PROMPT)
+    ])
+
+    text = (
+        response.content
+        if isinstance(response.content, str)
+        else response.content[0]["text"]
+    )
+
+    html_output = f"""
+<h2>🎉 Order Placed Successfully</h2>
+
+<p><strong>Order ID:</strong> {order_id}</p>
+
+<p><strong>Total Paid:</strong> ₹{total}</p>
+
+<p>{text}</p>
+
+<p>Would you like to order something else? 🍽️</p>
+"""
 
     return {
-        "response": f"🍽️ *Order Confirmed!* \n\nYour order has been placed successfully.\n\n* **Order ID:** `{order_id}`\n* **Amount:** ₹{total}\n* **Payment Method:** Cash on Delivery\n\nThank you for ordering with Spice Haven! You can view the order details in your *Orders* tab.",
-        "order_status": "placed",
-        "cart": []
+        **state,
+        "response": html_output,
+        "order_id": order_id,
+        "cart": [],
+        "last_action": "checkout"
     }

@@ -11,3 +11,10 @@ fastmcp
 pymongo
 gspread 
 google-auth
+langgraph-checkpoint-mongodb
+langchain_community
+langchain_huggingface
+requests
+geopy
+sentence-transformers
+faiss-cpu

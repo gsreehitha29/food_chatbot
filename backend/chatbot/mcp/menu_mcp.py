@@ -1,46 +1,26 @@
 from fastmcp import FastMCP
-
+import os
 mcp = FastMCP("RestaurantMenuMCP")
 
-import os
-from dotenv import load_dotenv
 from pymongo import MongoClient
 
-# Load environment variables from backend/.env dynamically
-current_dir = os.path.dirname(os.path.abspath(__file__))
-env_path = os.path.abspath(os.path.join(current_dir, "..", "..", ".env"))
-load_dotenv(dotenv_path=env_path)
-
-MONGODB_URI = os.getenv("MONGODB_URI")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "chatbot_database")
-
-client = MongoClient(MONGODB_URI)
-db = client[DATABASE_NAME]
-menu = db["MENU"]
+client = MongoClient("monogodb-connection-url")
+db = client.chatbot
+menu = db.menu
 
 @mcp.tool()
 def get_categories():
     """
     Returns all available menu categories
     """
-    raw_cats = list(menu.distinct("category_id"))
-    friendly_cats = []
-    for cat in raw_cats:
-        friendly = cat.replace("CAT_", "").replace("_", " ").title()
-        friendly_cats.append(friendly)
-    return friendly_cats
+    return list(menu.distinct("category"))
 
 @mcp.tool()
 def get_menu_items(category: str):
     """
     Returns all items in a given category
     """
-    cat_upper = category.upper().replace(" ", "_")
-    cat_id = f"CAT_{cat_upper}"
-    items = list(menu.find({"category_id": cat_id}, {"_id": 0}))
-    if not items:
-        items = list(menu.find({"category_id": {"$regex": cat_upper, "$options": "i"}}, {"_id": 0}))
-    return items
+    return list(menu.find({"category": category}))
 
 @mcp.tool()
 def search_menu(query: str):
@@ -84,11 +64,21 @@ def get_item_details(item_name: str):
         }
 
     return item
+@mcp.tool()
+def retrieve_all_menu_items():
+    results = []
+
+    for item in menu.find():
+        results.append(item)
+
+    return results 
+
+
 
 
 if __name__ == "__main__":
     mcp.run(
         transport="streamable-http",
-        host="127.0.0.1",
-        port=8011
+        host=os.getenv("MCP_HOST", "127.0.0.1"),
+        port=int(os.getenv("MENU_MCP_PORT", "8001"))
     )

@@ -33,9 +33,11 @@ def list_faq():
     return list(FAQ_DB.keys())
 
 
+import os
+
 if __name__ == "__main__":
     mcp.run(
         transport="streamable-http",
-        host="127.0.0.1",
-        port=8004
+        host=os.getenv("MCP_HOST", "127.0.0.1"),
+        port=int(os.getenv("FAQ_MCP_PORT", "8004"))
     )

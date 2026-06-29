@@ -1,6 +1,7 @@
 from adapter.mcp_adapter import order_client
 from services.llm import llm
 
+
 async def order_node(state):
 
     item = state["selected_item"]
@@ -13,28 +14,55 @@ async def order_node(state):
                 "user_id": state.get("conversation_id", "123"),
                 "item_name": item,
                 "quantity": qty,
-
             }
         )
 
-    prompt = f"""
-    The customer added an item to their cart.
+    result_text = result.content[0].text if hasattr(result, "content") else str(result)
 
-    Item: {item}
-    Quantity: {qty}
+    SYSTEM_PROMPT = """
+You are a restaurant assistant chatbot.
 
-    Cart update result:
-    {result}
+You MUST respond ONLY in clean HTML.
 
-    Generate a friendly restaurant chatbot response.
-    Mention the item and quantity added.
-    Ask the customer what they would like to do next.
-    """
+========================
+RULES
+========================
+- Output ONLY HTML
+- No markdown
+- No JSON
+- No tables in markdown
+- No explanations
+- Use proper HTML tags only
+- Always end with a question to the user
+"""
 
-    response = llm.invoke(prompt).content
-   
+    USER_PROMPT = f"""
+A customer has added an item to the cart.
+
+Item: {item}
+Quantity: {qty}
+
+Backend cart response:
+{result_text}
+
+Generate a friendly HTML confirmation message.
+Make it clean and user-friendly.
+"""
+
+    response = llm.invoke([
+        ("system", SYSTEM_PROMPT),
+        ("human", USER_PROMPT)
+    ])
+
+    response_text = (
+        response.content
+        if isinstance(response.content, str)
+        else response.content[0]["text"]
+    )
 
     return {
-        "response": response,
-        "cart": result
+        **state,
+        "response": response_text,
+        "cart": result_text,
+        "last_action": "add_to_cart"
     }

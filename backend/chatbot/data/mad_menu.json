@@ -1,0 +1,212 @@
+[
+  {
+    "item_id": "MAD001",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Plain Dosa",
+    "description": "Traditional South Indian crispy dosa made from fermented rice and lentil batter.",
+    "price": 75,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD002",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Masala Dosa",
+    "description": "Crispy dosa stuffed with flavorful potato masala.",
+    "price": 85,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD003",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Onion Dosa",
+    "description": "Crispy dosa topped with finely chopped onions.",
+    "price": 90,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD004",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Ghee Karam Dosa",
+    "description": "Dosa spread with spicy karam powder and aromatic ghee.",
+    "price": 105,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD005",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Butter Dosa",
+    "description": "Golden crispy dosa enriched with butter.",
+    "price": 100,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD006",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Pesara Dosa",
+    "description": "Protein-rich green gram dosa prepared in Andhra style.",
+    "price": 80,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD007",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Pesara Ghee Dosa",
+    "description": "Green gram dosa topped with aromatic ghee.",
+    "price": 105,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD008",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Pesara Onion Dosa",
+    "description": "Andhra-style green gram dosa topped with onions.",
+    "price": 100,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD009",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Pesara Onion Ghee Dosa",
+    "description": "Green gram dosa with onions and a layer of aromatic ghee.",
+    "price": 105,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD010",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Onion Ghee Dosa",
+    "description": "Crispy onion dosa enhanced with rich ghee.",
+    "price": 120,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD011",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Masala Ghee Dosa",
+    "description": "Masala dosa finished with aromatic ghee.",
+    "price": 110,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD012",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Beetroot Dosa",
+    "description": "Healthy dosa prepared with fresh beetroot.",
+    "price": 80,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD013",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Carrot Dosa",
+    "description": "Nutritious dosa prepared with fresh grated carrots.",
+    "price": 80,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD014",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Tomato Dosa",
+    "description": "Flavorful dosa prepared with fresh tomatoes.",
+    "price": 80,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD015",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Beetroot Ghee Dosa",
+    "description": "Beetroot dosa topped with aromatic ghee.",
+    "price": 105,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD016",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Carrot Ghee Dosa",
+    "description": "Carrot dosa enhanced with rich ghee.",
+    "price": 105,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD017",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Tomato Ghee Dosa",
+    "description": "Tomato dosa finished with aromatic ghee.",
+    "price": 105,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD018",
+    "restaurant_id": "MAD",
+    "category_id": "DOS",
+    "item_name": "Ghee Dibbarotti",
+    "description": "Traditional thick Andhra-style dosa cooked with ghee.",
+    "price": 105,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD019",
+    "restaurant_id": "MAD",
+    "category_id": "IDL",
+    "item_name": "Plain Idli [3 Pieces]",
+    "description": "Soft and fluffy steamed rice cakes served as a traditional South Indian breakfast.",
+    "price": 75,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD020",
+    "restaurant_id": "MAD",
+    "category_id": "IDL",
+    "item_name": "Ghee Karam Idli [3 Pieces]",
+    "description": "Soft idlis topped with spicy karam powder and aromatic ghee.",
+    "price": 105,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  },
+  {
+    "item_id": "MAD021",
+    "restaurant_id": "MAD",
+    "category_id": "PNG",
+    "item_name": "Ghee Pongal",
+    "description": "Traditional South Indian pongal prepared with rice, lentils, ghee and mild spices.",
+    "price": 120,
+    "veg_or_nonveg": "Veg",
+    "availability": true
+  }
+]

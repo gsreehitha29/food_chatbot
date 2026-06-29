@@ -1942,132 +1942,439 @@
     /* ================================================================
        SOCKET.IO CHAT
     ================================================================ */
-    let socket = null;
-    let currentBotDiv = null;
+    /* ==============================
+   CHAT STATE
+============================== */
 
-    function initSocket() {
-      try {
-        socket = io(SOCKET_URL, { reconnectionAttempts: 3, timeout: 5000 });
+let socket = null;
+let currentBotDiv = null;
+let fullStreamText = "";
 
-        socket.on('connect', () => {
-          document.getElementById('chat-status-text').textContent = 'Connected to AI assistant ✨';
-          toast('Chatbot connected!', 'success', 2000);
+let conversationId =
+    localStorage.getItem("conversationId");
+
+if (!conversationId) {
+    conversationId = crypto.randomUUID();
+    localStorage.setItem(
+        "conversationId",
+        conversationId
+    );
+}
+
+let userLocation = {
+    latitude: null,
+    longitude: null
+};
+
+/* ==============================
+   GET USER LOCATION
+============================== */
+
+navigator.geolocation.getCurrentPosition(
+    pos => {
+        userLocation.latitude =
+            pos.coords.latitude;
+
+        userLocation.longitude =
+            pos.coords.longitude;
+
+        console.log(
+            "Location:",
+            userLocation
+        );
+    },
+    err => {
+        console.log(
+            "Location denied",
+            err
+        );
+    },
+    {
+        enableHighAccuracy: true,
+        timeout: 10000
+    }
+);
+
+/* ==============================
+   SOCKET INITIALIZATION
+============================== */
+
+function initSocket() {
+
+    try {
+
+        socket = io(
+            SOCKET_URL,
+            {
+                reconnectionAttempts: 3,
+                timeout: 5000
+            }
+        );
+
+        socket.on("connect", () => {
+
+            document.getElementById(
+                "chat-status-text"
+            ).textContent =
+                "Connected to AI assistant ✨";
+
+            toast(
+                "Chatbot connected!",
+                "success",
+                2000
+            );
         });
 
-        socket.on('connect_error', () => {
-          document.getElementById('chat-status-text').textContent = 'Chatbot offline — using REST API mode';
-          USE_SOCKET = false;
+        socket.on("connect_error", () => {
+
+            document.getElementById(
+                "chat-status-text"
+            ).textContent =
+                "Chatbot offline — using REST mode";
+
+            USE_SOCKET = false;
         });
 
-        socket.on('bot_message', data => {
-          appendBotBubble(data.message || '');
+        /* NORMAL MESSAGE */
+
+        socket.on("bot_message", data => {
+            appendBotBubble(
+                data.message || ""
+            );
         });
 
-        socket.on('bot_stream', data => {
-          if (!currentBotDiv) {
-            currentBotDiv = document.createElement('div');
-            currentBotDiv.className = 'message bot';
-            currentBotDiv.innerHTML = `<div class="bubble"><span class="stream-content"></span><span class="cursor">▌</span></div>`;
-            document.getElementById('messages').appendChild(currentBotDiv);
-          }
-          currentBotDiv.querySelector('.stream-content').innerHTML += data.token;
-          scrollMessages();
+        /* STREAMING */
+
+        socket.on("bot_stream", data => {
+
+            if (!currentBotDiv) {
+
+                currentBotDiv =
+                    document.createElement(
+                        "div"
+                    );
+
+                currentBotDiv.className =
+                    "message bot";
+
+                currentBotDiv.innerHTML = `
+                    <div class="bubble">
+                        <div class="stream-content"></div>
+                        <span class="cursor">▌</span>
+                    </div>
+                `;
+
+                document
+                    .getElementById(
+                        "messages"
+                    )
+                    .appendChild(
+                        currentBotDiv
+                    );
+
+                fullStreamText = "";
+            }
+
+            fullStreamText +=
+                data.token || "";
+
+            currentBotDiv
+                .querySelector(
+                    ".stream-content"
+                )
+                .textContent =
+                fullStreamText;
+
+            scrollMessages();
         });
 
-        socket.on('bot_stream_end', () => {
-          if (!currentBotDiv) return;
-          const content = currentBotDiv.querySelector('.stream-content');
-          const cursor = currentBotDiv.querySelector('.cursor');
-          if (cursor) cursor.remove();
-          if (content) content.innerHTML = marked.parse(content.textContent);
-          currentBotDiv = null;
-          scrollMessages();
-        });
+        socket.on(
+            "bot_stream_end",
+            () => {
 
-      } catch (e) {
+                if (
+                    !currentBotDiv
+                ) return;
+
+                const content =
+                    currentBotDiv
+                    .querySelector(
+                        ".stream-content"
+                    );
+
+                const cursor =
+                    currentBotDiv
+                    .querySelector(
+                        ".cursor"
+                    );
+
+                if (cursor)
+                    cursor.remove();
+
+                content.innerHTML =
+                    marked.parse(
+                        fullStreamText
+                    );
+
+                currentBotDiv = null;
+                fullStreamText = "";
+
+                scrollMessages();
+            }
+        );
+
+    } catch (e) {
+
+        console.error(e);
+
         USE_SOCKET = false;
-        document.getElementById('chat-status-text').textContent = 'Chatbot unavailable — using REST AI Search';
-      }
+
+        document.getElementById(
+            "chat-status-text"
+        ).textContent =
+            "Chatbot unavailable";
     }
-    initSocket();
+}
 
-    function appendBotBubble(text) {
-      const div = document.createElement('div');
-      div.className = 'message bot';
-      div.innerHTML = `<div class="bubble">${marked.parse(text)}</div>`;
-      document.getElementById('messages').appendChild(div);
-      scrollMessages();
+initSocket();
+
+/* ==============================
+   MESSAGE HELPERS
+============================== */
+
+function appendBotBubble(text) {
+
+    const div =
+        document.createElement("div");
+
+    div.className =
+        "message bot";
+
+    div.innerHTML = `
+        <div class="bubble">
+            ${marked.parse(text)}
+        </div>
+    `;
+
+    document
+        .getElementById("messages")
+        .appendChild(div);
+
+    scrollMessages();
+}
+
+function appendUserBubble(text) {
+
+    const div =
+        document.createElement("div");
+
+    div.className =
+        "message user";
+
+    div.innerHTML = `
+        <div class="bubble">
+            ${escHtml(text)}
+        </div>
+    `;
+
+    document
+        .getElementById("messages")
+        .appendChild(div);
+
+    scrollMessages();
+}
+
+function scrollMessages() {
+
+    const el =
+        document.getElementById(
+            "messages"
+        );
+
+    el.scrollTop =
+        el.scrollHeight;
+}
+
+function clearChat() {
+
+    document.getElementById(
+        "messages"
+    ).innerHTML = "";
+}
+
+/* ==============================
+   SEND MESSAGE
+============================== */
+
+async function sendChat() {
+
+    const input =
+        document.getElementById(
+            "msg"
+        );
+
+    const text =
+        input.value.trim();
+
+    if (!text) return;
+
+    input.value = "";
+
+    appendUserBubble(text);
+
+    /* SOCKET MODE */
+
+    if (
+        USE_SOCKET &&
+        socket &&
+        socket.connected
+    ) {
+
+        socket.emit(
+            "user_message",
+            {
+                conversation_id:
+                    conversationId,
+
+                message: text,
+
+                location:
+                    userLocation
+            }
+        );
+
+        return;
     }
 
-    function appendUserBubble(text) {
-      const div = document.createElement('div');
-      div.className = 'message user';
-      div.innerHTML = `<div class="bubble">${escHtml(text)}</div>`;
-      document.getElementById('messages').appendChild(div);
-      scrollMessages();
-    }
+    /* REST FALLBACK */
 
-    function scrollMessages() {
-      const el = document.getElementById('messages');
-      el.scrollTop = el.scrollHeight;
-    }
+    const loadingDiv =
+        document.createElement("div");
 
-    function clearChat() {
-      document.getElementById('messages').innerHTML = '';
-    }
+    loadingDiv.className =
+        "message bot";
 
-    /* Chat send — tries socket first, falls back to AI conversational search */
-    async function sendChat() {
-      const input = document.getElementById('msg');
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = '';
+    loadingDiv.innerHTML = `
+        <div class="bubble">
+            Thinking...
+        </div>
+    `;
 
-      appendUserBubble(text);
+    document
+        .getElementById(
+            "messages"
+        )
+        .appendChild(
+            loadingDiv
+        );
 
-      if (USE_SOCKET && socket && socket.connected) {
-        socket.emit('user_message', {
-          conversation_id: userId,
-          message: text
-        });
-      } else {
-        /* Fallback: use backend conversational search */
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'message bot';
-        loadingDiv.innerHTML = `<div class="bubble"><span class="cursor">▌</span></div>`;
-        document.getElementById('messages').appendChild(loadingDiv);
-        scrollMessages();
+    scrollMessages();
 
-        try {
-          const r = await fetch(`${API_BASE}/search/conversation`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: text, session_id: convSessionId, user_id: userId })
-          });
-          const data = await r.json();
-          loadingDiv.remove();
+    try {
 
-          let reply = data.response_text || 'Here are some results:';
-          if (data.items && data.items.length) {
-            reply += '\n\n';
-            data.items.slice(0, 5).forEach((item, i) => {
-              reply += `**${i + 1}. ${item.item_name}** — ₹${item.price} | ${item.restaurant_name} | ⭐ ${item.rating}\n`;
-            });
-          }
-          appendBotBubble(reply);
-        } catch (e) {
-          loadingDiv.remove();
-          appendBotBubble('Sorry, I could not connect to the AI service. Please ensure the backend is running.');
+        const response =
+            await fetch(
+                `${API_BASE}/search/conversation`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        query: text,
+                        session_id:
+                            conversationId,
+                        user_id:
+                            userId,
+                        location:
+                            userLocation
+                    })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        loadingDiv.remove();
+
+        let reply =
+            data.response_text ||
+            "No response.";
+
+        if (
+            data.items &&
+            data.items.length
+        ) {
+
+            reply += "\n\n";
+
+            data.items
+                .slice(0, 5)
+                .forEach(
+                    (item, i) => {
+
+                        reply +=
+                            `**${i + 1}. ${item.item_name}**\n` +
+                            `₹${item.price} | ` +
+                            `${item.restaurant_name} | ` +
+                            `⭐ ${item.rating}\n\n`;
+                    }
+                );
         }
-      }
+
+        appendBotBubble(reply);
+
+    } catch (e) {
+
+        loadingDiv.remove();
+
+        appendBotBubble(
+            "Sorry, I could not connect to the AI service."
+        );
     }
+}
 
-    document.getElementById('msg').addEventListener('keydown', e => { if (e.key === 'Enter') sendChat(); });
+/* ==============================
+   ENTER KEY
+============================== */
 
-    /* Welcome message */
-    setTimeout(() => {
-      appendBotBubble('🍽️ **Welcome to MunchMate!** I\'m your smart dining assistant.\n\nI can help you:\n- 🔍 Search for dishes using natural language\n- 🛒 Browse menus and add to cart\n- 📦 Track your orders\n\nWhat are you craving today?');
-    }, 500);
+document
+    .getElementById("msg")
+    .addEventListener(
+        "keydown",
+        e => {
+            if (e.key === "Enter")
+                sendChat();
+        }
+    );
+
+/* ==============================
+   WELCOME MESSAGE
+============================== */
+
+setTimeout(() => {
+
+    appendBotBubble(`
+# 🍽️ Welcome to MunchMate!
+
+I can help you with:
+
+- 🔍 Search dishes naturally
+- 🍕 Get recommendations
+- 📍 Find nearby restaurants
+- 🛒 Order food
+
+Try:
+
+- "Recommend spicy biryani"
+- "Show veg dishes under ₹200"
+- "Restaurants near me"
+    `);
+
+}, 500);
 
     /* ================================================================
        RESTAURANTS

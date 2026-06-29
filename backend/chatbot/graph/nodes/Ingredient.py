@@ -6,13 +6,12 @@ async def ingredient_node(state):
     item = extract_item_name(
         state["user_message"]
     )
-    item_name = item.item_name if item and hasattr(item, "item_name") else state["user_message"]
 
     async with menu_client:
         details = await menu_client.call_tool(
             "get_item_details",
             {
-                "item_name": item_name
+                "item_name": item
             }
         )
 
@@ -39,5 +38,5 @@ Keep it conversational.
     response = llm.invoke(prompt)
 
     return {
-        "response": response.content
+        "response": response.content[0]['text']
     }

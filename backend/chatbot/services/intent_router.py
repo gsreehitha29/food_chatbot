@@ -7,12 +7,11 @@ class Intent(BaseModel):
     intent: Literal[
         "browse_menu",
         'category_selected',
-        "find_dishes",
+        "preference",
         "ingredients_info",
         "popular_items",
         "place_order",
         "checkout",
-        "summary",
         "general"
     ]
 
@@ -29,7 +28,7 @@ structured_llm = llm.with_structured_output(Intent)
 
 def detect_intent(user_message: str):
 
-  print("Intent Router Loaded")
+  # print("Intent Router Loaded")
   prompt = f"""
 You are a STRICT intent classification system for a restaurant chatbot.
 
@@ -163,7 +162,7 @@ When category_selected is triggered:
 → SHOW ONLY ITEMS in that category
 ---
 
-3. find_dishes
+3. preference
 User wants food based on preference or constraints.
 
 EXAMPLES:
@@ -199,25 +198,7 @@ User: "does it contain gluten"
 
 ---
 
-5. popular_items
-User wants recommendations, best dishes, or trending food.
-
-EXAMPLES:
-User: "what is best here"
-→ popular_items
-
-User: "recommend something good"
-→ popular_items
-
-User: "top dishes"
-→ popular_items
-
-User: "chef special"
-→ popular_items
-
----
-
-6. place_order
+5. place_order
 
 User wants to select items, add items to cart, or order food.
 
@@ -250,7 +231,7 @@ RULES:
 
 ---
 
-7. checkout
+6. checkout
 
 User wants to finalize the order and complete purchase.
 
@@ -360,6 +341,6 @@ Return structured JSON only.
 """
   
   result = structured_llm.invoke(prompt)
-  print("Intent Detection Result:", result)
+  # print("Intent Detection Result:", result)
 
   return result
