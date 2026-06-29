@@ -17,6 +17,14 @@ services:
       - qdrant
       - redis
 
+  chatbot:
+    build: ./chatbot
+    ports:
+      - "8005:8005"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
+
   qdrant:
     image: qdrant/qdrant:latest
     ports:

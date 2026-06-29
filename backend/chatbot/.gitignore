@@ -1,5 +1,6 @@
 .env
-
+experiment/
+data/
 __pycache__/
 *.pyc
 
