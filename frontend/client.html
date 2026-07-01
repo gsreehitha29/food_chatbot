@@ -2082,8 +2082,8 @@ function initSocket() {
                 .querySelector(
                     ".stream-content"
                 )
-                .textContent =
-                fullStreamText;
+                .innerHTML =
+                marked.parse(fullStreamText);
 
             scrollMessages();
         });
