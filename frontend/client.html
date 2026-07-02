@@ -1,0 +1,3253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MunchMate — Food Ordering & AI Assistant</title>
+  <meta name="description"
+    content="Order food, explore menus, and chat with our AI assistant at MunchMate — your smart restaurant companion.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    /* ================================================================
+   CSS RESET & DESIGN TOKENS
+================================================================ */
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #0f1117;
+      --bg-secondary: #161b27;
+      --bg-card: #1e2536;
+      --bg-card-hover: #252d42;
+      --bg-input: #252d42;
+      --border: #2e3850;
+      --border-light: #3a4463;
+
+      --accent: #f97316;
+      --accent-light: #fb923c;
+      --accent-dark: #ea580c;
+      --accent-glow: rgba(249, 115, 22, 0.25);
+
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #eab308;
+      --info: #3b82f6;
+
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+      --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+      --shadow-glow: 0 0 20px var(--accent-glow);
+
+      --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html,
+    body {
+      height: 100%;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    /* ================================================================
+   SCROLLBAR
+================================================================ */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-light);
+      border-radius: 99px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent);
+    }
+
+    /* ================================================================
+   APP SHELL
+================================================================ */
+    #app {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      grid-template-rows: 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ================================================================
+   SIDEBAR NAV
+================================================================ */
+    #sidebar {
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .sidebar-logo {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-logo h1 {
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+
+    .sidebar-logo p {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    .sidebar-user {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #fbbf24);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .user-info-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .user-info-text .uname {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-info-text .uid {
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .nav-section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 10px 10px 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      border: 1px solid transparent;
+      position: relative;
+      user-select: none;
+    }
+
+    .nav-item .nav-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .nav-item .nav-label {
+      flex: 1;
+    }
+
+    .nav-item .nav-badge {
+      background: var(--accent);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 99px;
+      min-width: 18px;
+      text-align: center;
+      line-height: 16px;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-primary);
+    }
+
+    .nav-item.active {
+      background: var(--accent-glow);
+      border-color: rgba(249, 115, 22, 0.4);
+      color: var(--accent-light);
+      font-weight: 600;
+    }
+
+    .sidebar-footer {
+      padding: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* ================================================================
+   MAIN CONTENT AREA
+================================================================ */
+    #main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-primary);
+    }
+
+    /* Top bar */
+    #topbar {
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    #topbar-title {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #topbar-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .backend-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: background 0.3s;
+    }
+
+    .status-dot.online {
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+    }
+
+    .status-dot.offline {
+      background: var(--danger);
+    }
+
+    /* Content panels */
+    #content {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .tab-panel {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      padding: 28px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity var(--transition), transform var(--transition);
+    }
+
+    .tab-panel.active {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+
+    /* ================================================================
+   COMPONENTS
+================================================================ */
+
+    /* Page heading */
+    .page-heading {
+      margin-bottom: 24px;
+    }
+
+    .page-heading h2 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+    }
+
+    .page-heading p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Grid layouts */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 18px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      transition: all var(--transition);
+      cursor: default;
+    }
+
+    .card.clickable {
+      cursor: pointer;
+    }
+
+    .card.clickable:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent);
+      box-shadow: var(--shadow-glow);
+      transform: translateY(-2px);
+    }
+
+    /* Restaurant card */
+    .restaurant-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .restaurant-emoji {
+      font-size: 40px;
+      line-height: 1;
+    }
+
+    .restaurant-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .restaurant-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .meta-chip {
+      font-size: 11px;
+      font-weight: 500;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      padding: 3px 9px;
+      border-radius: 99px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .meta-chip.accent {
+      border-color: var(--accent);
+      color: var(--accent-light);
+    }
+
+    .restaurant-stats {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .stat {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .stat strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .star {
+      color: #fbbf24;
+    }
+
+    .open-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+
+    .open-badge.open {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+    }
+
+    .open-badge.closed {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+
+    /* Menu item card */
+    .menu-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .menu-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .menu-item-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .menu-item-price {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--accent-light);
+      white-space: nowrap;
+    }
+
+    .menu-item-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .menu-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .veg-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .veg-badge.veg {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .veg-badge.nonveg {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all var(--transition);
+      font-family: inherit;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-light);
+      box-shadow: var(--shadow-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    .btn-sm {
+      padding: 7px 13px;
+      font-size: 12px;
+    }
+
+    .btn-lg {
+      padding: 13px 26px;
+      font-size: 15px;
+    }
+
+    .btn-icon {
+      padding: 9px;
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Quantity control */
+    .qty-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .qty-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition);
+    }
+
+    .qty-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .qty-val {
+      font-size: 14px;
+      font-weight: 700;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    /* Inputs */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.3px;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      padding: 11px 14px;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      width: 100%;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .form-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    .form-select option {
+      background: var(--bg-card);
+    }
+
+    /* Stars input */
+    .star-rating {
+      display: flex;
+      gap: 4px;
+    }
+
+    .star-rating span {
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: color var(--transition), transform var(--transition);
+    }
+
+    .star-rating span:hover,
+    .star-rating span.active {
+      color: #fbbf24;
+      transform: scale(1.15);
+    }
+
+    /* Search bar */
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .search-bar .form-input {
+      flex: 1;
+    }
+
+    /* Empty state */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      text-align: center;
+    }
+
+    .empty-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    .empty-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* Loader */
+    .loader-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 48px;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ================================================================
+   CHAT TAB
+================================================================ */
+    #chat-panel {
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+
+    #chat-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 800px;
+      width: 100%;
+      margin: 0 auto;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 20px 24px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .chat-header p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      display: flex;
+      max-width: 80%;
+    }
+
+    .message.user {
+      align-self: flex-end;
+    }
+
+    .message.bot {
+      align-self: flex-start;
+    }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      line-height: 1.65;
+      word-break: break-word;
+    }
+
+    .user .bubble {
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: white;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .bot .bubble {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
+    }
+
+    .bot .bubble p {
+      margin-bottom: 8px;
+    }
+
+    .bot .bubble p:last-child {
+      margin-bottom: 0;
+    }
+
+    .bot .bubble ul,
+    .bot .bubble ol {
+      padding-left: 18px;
+      margin: 6px 0;
+    }
+
+    .bot .bubble li {
+      margin-bottom: 4px;
+    }
+
+    .bot .bubble code {
+      background: var(--bg-primary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .bot .bubble pre {
+      background: var(--bg-primary);
+      padding: 10px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+
+    .cursor {
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    .chat-input-area {
+      padding: 16px 24px 20px;
+      display: flex;
+      gap: 10px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+
+    .chat-input-area .form-input {
+      flex: 1;
+    }
+
+    .chat-send {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0 18px;
+      font-size: 20px;
+      cursor: pointer;
+      transition: all var(--transition);
+      font-family: inherit;
+    }
+
+    .chat-send:hover {
+      background: var(--accent-light);
+      box-shadow: var(--shadow-glow);
+    }
+
+    /* ================================================================
+   CART SIDEBAR / TAB
+================================================================ */
+    .cart-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+    }
+
+    .cart-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .cart-item-name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .cart-item-price {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .cart-item-total {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent-light);
+      white-space: nowrap;
+    }
+
+    .cart-summary {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .cart-summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .cart-summary-row.total {
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+      padding-top: 14px;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+
+    .cart-summary-row.total span:last-child {
+      color: var(--accent-light);
+    }
+
+    /* ================================================================
+   ORDER CARD
+================================================================ */
+    .order-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-bottom: 14px;
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .order-id {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .order-date {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .order-status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .s-confirmed {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+    }
+
+    .s-preparing {
+      background: rgba(234, 179, 8, 0.15);
+      color: #fde047;
+    }
+
+    .s-delivered {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+    }
+
+    .s-cancelled {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+    }
+
+    .order-items {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .order-items li {
+      list-style: none;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .order-items li:last-child {
+      border: none;
+    }
+
+    .order-items li span {
+      float: right;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .order-total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .order-total-row span:last-child {
+      color: var(--accent-light);
+    }
+
+    /* ================================================================
+   AI SEARCH RESULT
+================================================================ */
+    .search-result {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all var(--transition);
+    }
+
+    .search-result:hover {
+      border-color: var(--accent);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .search-result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .search-result-name {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .search-result-price {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--accent-light);
+    }
+
+    .search-result-restaurant {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .search-result-reason {
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: var(--bg-primary);
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--accent);
+      font-style: italic;
+    }
+
+    .score-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .score-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #fbbf24);
+      border-radius: 99px;
+    }
+
+    .score-val {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* ================================================================
+   PROFILE
+================================================================ */
+    .profile-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 860px;
+    }
+
+    .profile-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+    }
+
+    .profile-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-primary);
+    }
+
+    /* ================================================================
+   SECTION TABS (used inside menu page)
+================================================================ */
+    .inner-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .inner-tab {
+      padding: 7px 16px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
+      transition: all var(--transition);
+      font-family: inherit;
+    }
+
+    .inner-tab:hover {
+      background: var(--bg-card);
+      color: var(--text-primary);
+    }
+
+    .inner-tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    /* ================================================================
+   TOASTS
+================================================================ */
+    #toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+      pointer-events: all;
+      max-width: 320px;
+      word-break: break-word;
+    }
+
+    .toast.success {
+      border-color: rgba(34, 197, 94, 0.4);
+    }
+
+    .toast.error {
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    .toast.info {
+      border-color: rgba(59, 130, 246, 0.4);
+    }
+
+    .toast-icon {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+    }
+
+    /* ================================================================
+   MODAL
+================================================================ */
+    #modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition);
+    }
+
+    #modal-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      width: 90%;
+      max-width: 480px;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.94);
+      transition: transform var(--transition);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    #modal-overlay.visible .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      transition: color var(--transition);
+    }
+
+    .modal-close:hover {
+      color: var(--text-primary);
+    }
+
+    /* ================================================================
+   RECOMMENDATION STRIP
+================================================================ */
+    .rec-strip {
+      background: linear-gradient(135deg, rgba(249, 115, 22, 0.08), rgba(251, 191, 36, 0.04));
+      border: 1px solid rgba(249, 115, 22, 0.2);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+
+    .rec-strip h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-light);
+      margin-bottom: 10px;
+    }
+
+    .rec-strip-items {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .rec-chip {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .rec-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent-light);
+    }
+
+    /* ================================================================
+   RESPONSIVE
+================================================================ */
+    @media (max-width: 768px) {
+      #app {
+        grid-template-columns: 1fr;
+      }
+
+      #sidebar {
+        display: none;
+      }
+
+      .profile-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ================================================================
+   CHECKOUT FORM inside modal
+================================================================ */
+    .checkout-item-list {
+      margin-bottom: 16px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .checkout-item-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .checkout-item-row:last-child {
+      border: none;
+    }
+
+    .checkout-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 12px 0 4px;
+      border-top: 1px solid var(--border);
+    }
+
+    .checkout-total-row span:last-child {
+      color: var(--accent-light);
+    }
+
+    /* Review modal stars */
+    .review-stars-row {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin: 12px 0;
+    }
+
+    .review-stars-row span {
+      font-size: 30px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: color var(--transition), transform var(--transition);
+    }
+
+    .review-stars-row span.active {
+      color: #fbbf24;
+    }
+
+    .review-stars-row span:hover {
+      transform: scale(1.2);
+    }
+
+    /* ================================================================
+   BACK BREADCRUMB
+================================================================ */
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .breadcrumb a {
+      color: var(--text-muted);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .breadcrumb a:hover {
+      color: var(--accent-light);
+    }
+
+    .breadcrumb .sep {
+      color: var(--border-light);
+    }
+
+    .breadcrumb .current {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* Inline info boxes */
+    .info-box {
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    .info-box strong {
+      color: var(--info);
+    }
+
+    /* two column form */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================================================
+     APP SHELL
+============================================================ -->
+  <div id="app">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div class="sidebar-logo">
+        <h1>🍽️ MunchMate</h1>
+        <p>Smart Restaurant Assistant</p>
+      </div>
+
+      <div class="sidebar-user" id="sidebar-user-area">
+        <div class="user-avatar" id="sidebar-avatar">?</div>
+        <div class="user-info-text">
+          <div class="uname" id="sidebar-uname">Guest User</div>
+          <div class="uid" id="sidebar-uid">Not registered</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Explore</div>
+        <div class="nav-item active" data-tab="chat">
+          <span class="nav-icon">💬</span>
+          <span class="nav-label">AI Chat</span>
+        </div>
+        <div class="nav-item" data-tab="restaurants">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">Restaurants</span>
+        </div>
+        <div class="nav-item" data-tab="search">
+          <span class="nav-icon">🔍</span>
+          <span class="nav-label">AI Search</span>
+        </div>
+
+        <div class="nav-section-label">My Account</div>
+        <div class="nav-item" data-tab="cart">
+          <span class="nav-icon">🛒</span>
+          <span class="nav-label">Cart</span>
+          <span class="nav-badge" id="cart-badge" style="display:none">0</span>
+        </div>
+        <div class="nav-item" data-tab="orders">
+          <span class="nav-icon">📦</span>
+          <span class="nav-label">Orders</span>
+        </div>
+        <div class="nav-item" data-tab="profile">
+          <span class="nav-icon">👤</span>
+          <span class="nav-label">Profile</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        Backend: <code>localhost:8000</code>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div id="main">
+      <!-- TOP BAR -->
+      <div id="topbar">
+        <div id="topbar-title">
+          <span id="topbar-icon">💬</span>
+          <span id="topbar-text">AI Chat</span>
+        </div>
+        <div id="topbar-actions">
+          <div class="backend-status">
+            <span class="status-dot" id="status-dot"></span>
+            <span id="status-text">Checking…</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTENT PANELS -->
+      <div id="content">
+
+        <!-- ======== CHAT PANEL ======== -->
+        <div class="tab-panel active" id="panel-chat">
+          <div id="chat-wrap" style="position:absolute;inset:0;display:flex;flex-direction:column;">
+            <div class="chat-header">
+              <div>
+                <h2>🤖 AI Chat Assistant</h2>
+                <p id="chat-status-text">Connecting to chatbot…</p>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="clearChat()">Clear Chat</button>
+            </div>
+            <div id="messages"></div>
+            <div class="chat-input-area">
+              <input id="msg" class="form-input" type="text"
+                placeholder="Type a message… (e.g. 'show me biryani options')">
+              <button class="chat-send" id="send-btn" onclick="sendChat()">➤</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======== RESTAURANTS PANEL ======== -->
+        <div class="tab-panel" id="panel-restaurants">
+          <div class="page-heading">
+            <h2>🏠 Restaurants</h2>
+            <p>Browse all available restaurants and explore their menus</p>
+          </div>
+          <div id="rec-strip-area"></div>
+          <div class="search-bar">
+            <input id="rest-search-q" class="form-input" placeholder="Search restaurants by name or cuisine…"
+              oninput="filterRestaurants()">
+          </div>
+          <div id="restaurants-grid" class="grid-3">
+            <div class="loader-wrap">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======== MENU PANEL ======== -->
+        <div class="tab-panel" id="panel-menu">
+          <div class="breadcrumb">
+            <a onclick="showTab('restaurants')">🏠 Restaurants</a>
+            <span class="sep">›</span>
+            <span class="current" id="menu-rest-name">—</span>
+          </div>
+
+          <div id="menu-restaurant-info"></div>
+
+          <div class="inner-tabs" id="category-tabs"></div>
+
+          <div id="menu-items-grid" class="grid-2">
+            <div class="loader-wrap">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======== AI SEARCH PANEL ======== -->
+        <div class="tab-panel" id="panel-search">
+          <div class="page-heading">
+            <h2>🔍 AI-Powered Search</h2>
+            <p>Find food using natural language — "crispy veg snacks under ₹150"</p>
+          </div>
+
+          <div class="search-bar" style="flex-direction:column;gap:14px;">
+            <input id="ai-search-q" class="form-input"
+              placeholder="Describe what you're craving… e.g. 'spicy chicken biryani under 300'"
+              style="font-size:15px;padding:14px;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="doHybridSearch()">🔍 Hybrid Search</button>
+              <button class="btn btn-ghost" onclick="doSemanticSearch()">✨ Semantic Search</button>
+              <button class="btn btn-ghost" onclick="doConversationalSearch()">💬 Conversational</button>
+            </div>
+          </div>
+
+          <div id="search-session-info" class="info-box" style="display:none">
+            💬 <strong>Conversational mode active</strong> — Your preferences accumulate across messages.
+            <button class="btn btn-ghost btn-sm" onclick="resetConversation()" style="margin-left:10px;">Reset</button>
+          </div>
+
+          <div id="search-results">
+            <div class="empty-state">
+              <div class="empty-icon">🔍</div>
+              <div class="empty-title">Ready to search</div>
+              <div class="empty-sub">Enter a query above and pick a search mode</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======== CART PANEL ======== -->
+        <div class="tab-panel" id="panel-cart">
+          <div class="page-heading">
+            <h2>🛒 Your Cart</h2>
+            <p>Review items and proceed to checkout</p>
+          </div>
+          <div id="cart-content">
+            <div class="loader-wrap">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======== ORDERS PANEL ======== -->
+        <div class="tab-panel" id="panel-orders">
+          <div class="page-heading">
+            <h2>📦 Order History</h2>
+            <p>Track and review your past orders</p>
+          </div>
+          <div id="orders-content">
+            <div class="loader-wrap">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======== PROFILE PANEL ======== -->
+        <div class="tab-panel" id="panel-profile">
+          <div class="page-heading">
+            <h2>👤 Your Profile</h2>
+            <p>Manage your account and preferences</p>
+          </div>
+          <div class="profile-layout">
+
+            <!-- Register / view profile -->
+            <div class="profile-card" id="profile-form-card">
+              <h3>🆕 Register Account</h3>
+              <div id="profile-reg-form">
+                <div class="form-group">
+                  <label class="form-label">Full Name *</label>
+                  <input id="reg-name" class="form-input" placeholder="e.g. Rahul Sharma" type="text">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Email *</label>
+                  <input id="reg-email" class="form-input" placeholder="you@example.com" type="email">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phone *</label>
+                  <input id="reg-phone" class="form-input" placeholder="9876543210" type="tel">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Favourite Cuisines</label>
+                  <input id="reg-cuisines" class="form-input" placeholder="Indian, Chinese, Italian (comma-separated)">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Delivery Address</label>
+                  <input id="reg-addr" class="form-input" placeholder="Full street address">
+                  <div class="form-row" style="margin-top:8px;">
+                    <input id="reg-city" class="form-input" placeholder="City">
+                    <input id="reg-state" class="form-input" placeholder="State">
+                  </div>
+                  <input id="reg-pin" class="form-input" placeholder="Pincode" style="margin-top:8px;">
+                </div>
+                <button class="btn btn-primary" style="width:100%" onclick="registerUser()">Create Account</button>
+              </div>
+            </div>
+
+            <!-- Profile details -->
+            <div class="profile-card" id="profile-details-card" style="display:none">
+              <h3>✅ Account Details</h3>
+              <div id="profile-details-content"></div>
+              <button class="btn btn-ghost btn-sm" style="margin-top:16px" onclick="logoutUser()">Switch
+                Account</button>
+            </div>
+
+            <!-- Session info card -->
+            <div class="profile-card">
+              <h3>⚙️ Session Info</h3>
+              <div class="form-group">
+                <label class="form-label">Your User ID</label>
+                <input id="session-uid-display" class="form-input" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Or enter existing User ID</label>
+                <div style="display:flex;gap:8px">
+                  <input id="manual-uid" class="form-input" placeholder="USR-XXXXXXXX">
+                  <button class="btn btn-ghost" onclick="loadProfileByUid()">Load</button>
+                </div>
+              </div>
+              <p style="font-size:12px;color:var(--text-muted);margin-top:8px">
+                Your session is stored locally. You can share your User ID across devices to access your account.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /main -->
+  </div><!-- /app -->
+
+  <!-- ============================================================
+     MODAL
+============================================================ -->
+  <div id="modal-overlay" onclick="closeModalIfOutside(event)">
+    <div class="modal" id="modal-box">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">Modal</div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+     TOAST CONTAINER
+============================================================ -->
+  <div id="toast-container"></div>
+
+  <!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+  <script>
+    /* ================================================================
+       CONFIG
+    ================================================================ */
+    const API_BASE = 'http://localhost:8000';
+    const SOCKET_URL = 'http://localhost:8005';  // LangGraph chatbot server port
+    let USE_SOCKET = true;
+
+    /* ================================================================
+       STATE
+    ================================================================ */
+    let currentTab = 'chat';
+    let userId = localStorage.getItem('spicebot_user_id');
+    let currentRestaurant = null;
+    let allRestaurants = [];
+    let cartData = null;
+    let convSessionId = crypto.randomUUID();
+    let convHistory = [];
+    let selectedRating = 0;
+    let pendingReviewOrderId = null;
+
+    /* Generate a guest user ID if none exists */
+    if (!userId) {
+      userId = 'GUEST-' + crypto.randomUUID().split('-')[0].toUpperCase();
+      localStorage.setItem('spicebot_user_id', userId);
+    }
+
+    /* ================================================================
+       NAVIGATION
+    ================================================================ */
+    const tabConfig = {
+      chat: { icon: '💬', title: 'AI Chat', onEnter: () => { } },
+      restaurants: { icon: '🏠', title: 'Restaurants', onEnter: loadRestaurants },
+      menu: { icon: '📋', title: 'Menu', onEnter: () => { } },
+      search: { icon: '🔍', title: 'AI Search', onEnter: () => { } },
+      cart: { icon: '🛒', title: 'Cart', onEnter: loadCart },
+      orders: { icon: '📦', title: 'Orders', onEnter: loadOrders },
+      profile: { icon: '👤', title: 'Profile', onEnter: loadProfile },
+    };
+
+    function showTab(tab) {
+      /* Deactivate all */
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(el => el.classList.remove('active'));
+
+      /* Activate target */
+      const navItem = document.querySelector(`.nav-item[data-tab="${tab}"]`);
+      if (navItem) navItem.classList.add('active');
+
+      const panel = document.getElementById(`panel-${tab}`);
+      if (panel) panel.classList.add('active');
+
+      currentTab = tab;
+      const cfg = tabConfig[tab] || {};
+      document.getElementById('topbar-icon').textContent = cfg.icon || '';
+      document.getElementById('topbar-text').textContent = cfg.title || tab;
+      if (cfg.onEnter) cfg.onEnter();
+    }
+
+    document.querySelectorAll('.nav-item').forEach(el => {
+      el.addEventListener('click', () => showTab(el.dataset.tab));
+    });
+
+    /* ================================================================
+       HEALTH CHECK
+    ================================================================ */
+    async function checkBackendHealth() {
+      try {
+        const r = await fetch(`${API_BASE}/`, { signal: AbortSignal.timeout(4000) });
+        if (r.ok) {
+          document.getElementById('status-dot').className = 'status-dot online';
+          document.getElementById('status-text').textContent = 'Backend online';
+          return true;
+        }
+      } catch (e) { }
+      document.getElementById('status-dot').className = 'status-dot offline';
+      document.getElementById('status-text').textContent = 'Backend offline';
+      return false;
+    }
+    checkBackendHealth();
+    setInterval(checkBackendHealth, 15000);
+
+    /* ================================================================
+       TOAST
+    ================================================================ */
+    function toast(msg, type = 'info', duration = 3500) {
+      const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.innerHTML = `<span class="toast-icon">${icons[type] || 'ℹ️'}</span><span>${msg}</span>`;
+      document.getElementById('toast-container').appendChild(el);
+      setTimeout(() => {
+        el.style.animation = 'slideOut 0.3s ease both';
+        el.addEventListener('animationend', () => el.remove());
+      }, duration);
+    }
+
+    /* ================================================================
+       MODAL
+    ================================================================ */
+    function openModal(title, bodyHtml) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-body').innerHTML = bodyHtml;
+      document.getElementById('modal-overlay').classList.add('visible');
+    }
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('visible');
+    }
+    function closeModalIfOutside(e) {
+      if (e.target === document.getElementById('modal-overlay')) closeModal();
+    }
+
+    /* ================================================================
+       SOCKET.IO CHAT
+    ================================================================ */
+    /* ==============================
+   CHAT STATE
+============================== */
+
+let socket = null;
+let currentBotDiv = null;
+let fullStreamText = "";
+
+let conversationId =
+    localStorage.getItem("conversationId");
+
+if (!conversationId) {
+    conversationId = crypto.randomUUID();
+    localStorage.setItem(
+        "conversationId",
+        conversationId
+    );
+}
+
+let userLocation = {
+    latitude: null,
+    longitude: null
+};
+
+/* ==============================
+   GET USER LOCATION
+============================== */
+
+navigator.geolocation.getCurrentPosition(
+    pos => {
+        userLocation.latitude =
+            pos.coords.latitude;
+
+        userLocation.longitude =
+            pos.coords.longitude;
+
+        console.log(
+            "Location:",
+            userLocation
+        );
+    },
+    err => {
+        console.log(
+            "Location denied",
+            err
+        );
+    },
+    {
+        enableHighAccuracy: true,
+        timeout: 10000
+    }
+);
+
+/* ==============================
+   SOCKET INITIALIZATION
+============================== */
+
+function initSocket() {
+
+    try {
+
+        socket = io(
+            SOCKET_URL,
+            {
+                reconnectionAttempts: 3,
+                timeout: 5000
+            }
+        );
+
+        socket.on("connect", () => {
+
+            document.getElementById(
+                "chat-status-text"
+            ).textContent =
+                "Connected to AI assistant ✨";
+
+            toast(
+                "Chatbot connected!",
+                "success",
+                2000
+            );
+        });
+
+        socket.on("connect_error", () => {
+
+            document.getElementById(
+                "chat-status-text"
+            ).textContent =
+                "Chatbot offline — using REST mode";
+
+            USE_SOCKET = false;
+        });
+
+        /* NORMAL MESSAGE */
+
+        socket.on("bot_message", data => {
+            appendBotBubble(
+                data.message || ""
+            );
+        });
+
+        /* STREAMING */
+
+        socket.on("bot_stream", data => {
+
+            if (!currentBotDiv) {
+
+                currentBotDiv =
+                    document.createElement(
+                        "div"
+                    );
+
+                currentBotDiv.className =
+                    "message bot";
+
+                currentBotDiv.innerHTML = `
+                    <div class="bubble">
+                        <div class="stream-content"></div>
+                        <span class="cursor">▌</span>
+                    </div>
+                `;
+
+                document
+                    .getElementById(
+                        "messages"
+                    )
+                    .appendChild(
+                        currentBotDiv
+                    );
+
+                fullStreamText = "";
+            }
+
+            fullStreamText +=
+                data.token || "";
+
+            currentBotDiv
+                .querySelector(
+                    ".stream-content"
+                )
+                .innerHTML =
+                marked.parse(fullStreamText);
+
+            scrollMessages();
+        });
+
+        socket.on(
+            "bot_stream_end",
+            () => {
+
+                if (
+                    !currentBotDiv
+                ) return;
+
+                const content =
+                    currentBotDiv
+                    .querySelector(
+                        ".stream-content"
+                    );
+
+                const cursor =
+                    currentBotDiv
+                    .querySelector(
+                        ".cursor"
+                    );
+
+                if (cursor)
+                    cursor.remove();
+
+                content.innerHTML =
+                    marked.parse(
+                        fullStreamText
+                    );
+
+                currentBotDiv = null;
+                fullStreamText = "";
+
+                scrollMessages();
+            }
+        );
+
+    } catch (e) {
+
+        console.error(e);
+
+        USE_SOCKET = false;
+
+        document.getElementById(
+            "chat-status-text"
+        ).textContent =
+            "Chatbot unavailable";
+    }
+}
+
+initSocket();
+
+/* ==============================
+   MESSAGE HELPERS
+============================== */
+
+function appendBotBubble(text) {
+
+    const div =
+        document.createElement("div");
+
+    div.className =
+        "message bot";
+
+    div.innerHTML = `
+        <div class="bubble">
+            ${marked.parse(text)}
+        </div>
+    `;
+
+    document
+        .getElementById("messages")
+        .appendChild(div);
+
+    scrollMessages();
+}
+
+function appendUserBubble(text) {
+
+    const div =
+        document.createElement("div");
+
+    div.className =
+        "message user";
+
+    div.innerHTML = `
+        <div class="bubble">
+            ${escHtml(text)}
+        </div>
+    `;
+
+    document
+        .getElementById("messages")
+        .appendChild(div);
+
+    scrollMessages();
+}
+
+function scrollMessages() {
+
+    const el =
+        document.getElementById(
+            "messages"
+        );
+
+    el.scrollTop =
+        el.scrollHeight;
+}
+
+function clearChat() {
+
+    document.getElementById(
+        "messages"
+    ).innerHTML = "";
+}
+
+/* ==============================
+   SEND MESSAGE
+============================== */
+
+async function sendChat() {
+
+    const input =
+        document.getElementById(
+            "msg"
+        );
+
+    const text =
+        input.value.trim();
+
+    if (!text) return;
+
+    input.value = "";
+
+    appendUserBubble(text);
+
+    /* SOCKET MODE */
+
+    if (
+        USE_SOCKET &&
+        socket &&
+        socket.connected
+    ) {
+
+        socket.emit(
+            "user_message",
+            {
+                conversation_id:
+                    conversationId,
+
+                message: text,
+
+                location:
+                    userLocation
+            }
+        );
+
+        return;
+    }
+
+    /* REST FALLBACK */
+
+    const loadingDiv =
+        document.createElement("div");
+
+    loadingDiv.className =
+        "message bot";
+
+    loadingDiv.innerHTML = `
+        <div class="bubble">
+            Thinking...
+        </div>
+    `;
+
+    document
+        .getElementById(
+            "messages"
+        )
+        .appendChild(
+            loadingDiv
+        );
+
+    scrollMessages();
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE}/search/conversation`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        query: text,
+                        session_id:
+                            conversationId,
+                        user_id:
+                            userId,
+                        location:
+                            userLocation
+                    })
+                }
+            );
+
+        const data =
+            await response.json();
+
+        loadingDiv.remove();
+
+        let reply =
+            data.response_text ||
+            "No response.";
+
+        if (
+            data.items &&
+            data.items.length
+        ) {
+
+            reply += "\n\n";
+
+            data.items
+                .slice(0, 5)
+                .forEach(
+                    (item, i) => {
+
+                        reply +=
+                            `**${i + 1}. ${item.item_name}**\n` +
+                            `₹${item.price} | ` +
+                            `${item.restaurant_name} | ` +
+                            `⭐ ${item.rating}\n\n`;
+                    }
+                );
+        }
+
+        appendBotBubble(reply);
+
+    } catch (e) {
+
+        loadingDiv.remove();
+
+        appendBotBubble(
+            "Sorry, I could not connect to the AI service."
+        );
+    }
+}
+
+/* ==============================
+   ENTER KEY
+============================== */
+
+document
+    .getElementById("msg")
+    .addEventListener(
+        "keydown",
+        e => {
+            if (e.key === "Enter")
+                sendChat();
+        }
+    );
+
+/* ==============================
+   WELCOME MESSAGE
+============================== */
+
+setTimeout(() => {
+
+    appendBotBubble(`
+# 🍽️ Welcome to MunchMate!
+
+I can help you with:
+
+- 🔍 Search dishes naturally
+- 🍕 Get recommendations
+- 📍 Find nearby restaurants
+- 🛒 Order food
+
+Try:
+
+- "Recommend spicy biryani"
+- "Show veg dishes under ₹200"
+- "Restaurants near me"
+    `);
+
+}, 500);
+
+    /* ================================================================
+       RESTAURANTS
+    ================================================================ */
+    async function loadRestaurants() {
+      const grid = document.getElementById('restaurants-grid');
+      grid.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+
+      try {
+        const r = await fetch(`${API_BASE}/menu/`);
+        const data = await r.json();
+        allRestaurants = data.restaurants || [];
+        renderRestaurants(allRestaurants);
+
+        /* Also load recommendations if user is registered */
+        if (isRegistered()) loadRecommendations();
+      } catch (e) {
+        grid.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load restaurants</div><div class="empty-sub">${e.message}</div></div>`;
+      }
+    }
+
+    function filterRestaurants() {
+      const q = document.getElementById('rest-search-q').value.toLowerCase();
+      if (!q) { renderRestaurants(allRestaurants); return; }
+      const filtered = allRestaurants.filter(r => {
+        // cuisine may be a comma-separated string (normalized by backend)
+        const cuisineStr = Array.isArray(r.cuisine) ? r.cuisine.join(', ') : (r.cuisine || '');
+        return r.restaurant_name.toLowerCase().includes(q) ||
+          cuisineStr.toLowerCase().includes(q) ||
+          (r.location || '').toLowerCase().includes(q);
+      });
+      renderRestaurants(filtered);
+    }
+
+    const cuisineEmoji = {
+      // Real restaurant cuisines
+      'arabian': '🥙', 'middle eastern': '🥙', 'mughlai': '🍖', 'kebabs': '🍢',
+      'biryani': '🍛', 'north indian': '🍛', 'punjabi': '🍛', 'indian': '🍛',
+      'south indian': '🫓', 'breakfast': '☕',
+      'bakery': '🧁', 'desserts': '🍰', 'fast food': '🍟',
+      'chinese': '🥢', 'tibetan': '🥟', 'street food': '🌮',
+      'maharashtrian': '🥘', 'snacks': '🍿',
+      'bengali': '🐟',
+      // Generic fallbacks
+      'italian': '🍕', 'american': '🍔',
+      'default': '🍴'
+    };
+
+    function getCuisineEmoji(cuisine) {
+      if (!cuisine) return cuisineEmoji.default;
+      // cuisine may be comma-separated (e.g. "Arabian, Middle Eastern")
+      const parts = cuisine.split(',').map(s => s.trim().toLowerCase());
+      for (const part of parts) {
+        if (cuisineEmoji[part]) return cuisineEmoji[part];
+      }
+      return cuisineEmoji.default;
+    }
+
+    function renderRestaurants(list) {
+      const grid = document.getElementById('restaurants-grid');
+      if (!list.length) {
+        grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🍴</div><div class="empty-title">No restaurants found</div></div>';
+        return;
+      }
+      grid.innerHTML = list.map(r => {
+        // cuisine is a comma-separated string after backend normalisation
+        const cuisineDisplay = r.cuisine || '—';
+        const cuisineParts = cuisineDisplay.split(',').map(s => s.trim());
+        const cuisineChips = cuisineParts.map(c => `<span class="meta-chip accent">${escHtml(c)}</span>`).join('');
+        const contactInfo = r.contact_number ? `📞 ${escHtml(r.contact_number)}` : (r.delivery_time ? `🕐 ${escHtml(r.delivery_time)}` : '');
+        return `
+    <div class="card clickable restaurant-card" onclick="loadRestaurantMenu('${r.restaurant_id}','${escJs(r.restaurant_name)}')">
+      <div class="restaurant-emoji">${getCuisineEmoji(cuisineDisplay)}</div>
+      <div>
+        <div class="restaurant-name">${escHtml(r.restaurant_name)}</div>
+        <div class="restaurant-meta">
+          ${cuisineChips}
+          <span class="meta-chip">📍 ${escHtml(r.location || '—')}</span>
+        </div>
+      </div>
+      <div class="restaurant-stats">
+        <span class="stat"><span class="star">★</span> <strong>${r.rating}</strong></span>
+        ${contactInfo ? `<span class="stat">${contactInfo}</span>` : ''}
+        <span class="stat">₹${r.price_for_two} for 2</span>
+        <span class="open-badge ${r.is_open ? 'open' : 'closed'}">${r.is_open ? 'Open' : 'Closed'}</span>
+      </div>
+    </div>`;
+      }).join('');
+    }
+
+    async function loadRecommendations() {
+      try {
+        const r = await fetch(`${API_BASE}/recommendation?user_id=${encodeURIComponent(userId)}`);
+        const data = await r.json();
+        const items = [...(data.cart_based || []), ...(data.popular || [])].slice(0, 6);
+        if (!items.length) return;
+        const strip = document.getElementById('rec-strip-area');
+        strip.innerHTML = `
+      <div class="rec-strip">
+        <h3>✨ Recommended For You</h3>
+        <div class="rec-strip-items">
+          ${items.map(i => `<span class="rec-chip" title="₹${i.price}">${escHtml(i.item_name)}</span>`).join('')}
+        </div>
+      </div>`;
+      } catch (_) { }
+    }
+
+    /* ================================================================
+       MENU
+    ================================================================ */
+    async function loadRestaurantMenu(restaurantId, restaurantName) {
+      currentRestaurant = restaurantId;
+      document.getElementById('menu-rest-name').textContent = restaurantName;
+      document.getElementById('menu-items-grid').innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+      document.getElementById('menu-restaurant-info').innerHTML = '';
+      document.getElementById('category-tabs').innerHTML = '';
+      showTab('menu');
+
+      try {
+        const [menuRes, reviewRes] = await Promise.allSettled([
+          fetch(`${API_BASE}/menu/${restaurantId}`),
+          fetch(`${API_BASE}/reviews/${restaurantId}`)
+        ]);
+
+        const menuData = menuRes.status === 'fulfilled' ? await menuRes.value.json() : {};
+        const reviewData = reviewRes.status === 'fulfilled' ? await reviewRes.value.json() : {};
+
+        const rest = menuData.restaurant || {};
+        const items = menuData.menu_items || [];
+        const reviews = reviewData.reviews || [];
+
+        /* Restaurant info bar */
+        document.getElementById('menu-restaurant-info').innerHTML = `
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <div>
+          <div style="font-size:20px;font-weight:800">${getCuisineEmoji(rest.cuisine || '')} ${escHtml(rest.restaurant_name || restaurantName)}</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-top:4px">
+            📍 ${escHtml(rest.location || '—')} &nbsp;|&nbsp; 🕐 ${escHtml(rest.delivery_time || '—')} &nbsp;|&nbsp; ₹${rest.price_for_two || 0} for 2
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="stat"><span class="star">★</span> <strong>${rest.rating || '—'}</strong></span>
+          <span class="open-badge ${rest.is_open ? 'open' : 'closed'}">${rest.is_open ? 'Open' : 'Closed'}</span>
+          ${reviews.length ? `<button class="btn btn-ghost btn-sm" onclick="viewReviews('${restaurantId}')">💬 ${reviews.length} Reviews</button>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="openReviewForm('${restaurantId}')">✍️ Write Review</button>
+        </div>
+      </div>`;
+
+        /* Build category tabs */
+        const categories = [...new Set(items.map(i => i.category_id))];
+        const tabsEl = document.getElementById('category-tabs');
+        tabsEl.innerHTML = `<button class="inner-tab active" onclick="filterMenuCategory('all', this)">All (${items.length})</button>`
+          + categories.map(cat => {
+            const count = items.filter(i => i.category_id === cat).length;
+            return `<button class="inner-tab" onclick="filterMenuCategory('${cat}', this)">${formatCatName(cat)} (${count})</button>`;
+          }).join('');
+
+        /* Store items globally for filtering */
+        window._menuItems = items;
+        renderMenuItems(items, restaurantId);
+
+      } catch (e) {
+        document.getElementById('menu-items-grid').innerHTML =
+          `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Failed to load menu</div><div class="empty-sub">${e.message}</div></div>`;
+      }
+    }
+
+    function formatCatName(cat) {
+      return cat.replace(/^CAT_/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function filterMenuCategory(cat, btn) {
+      document.querySelectorAll('#category-tabs .inner-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const items = cat === 'all' ? window._menuItems : window._menuItems.filter(i => i.category_id === cat);
+      renderMenuItems(items, currentRestaurant);
+    }
+
+    function getVegClass(val) {
+      // Handles: 'veg', 'Veg', 'Non-Veg', 'nonveg', 'non-veg' etc.
+      if (!val) return 'veg';
+      const v = val.toLowerCase();
+      return (v.includes('non') || v === 'nonveg') ? 'nonveg' : 'veg';
+    }
+
+    function renderMenuItems(items, restaurantId) {
+      const grid = document.getElementById('menu-items-grid');
+      if (!items.length) {
+        grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🍽️</div><div class="empty-title">No items in this category</div></div>';
+        return;
+      }
+      grid.innerHTML = items.map(item => {
+        const vegClass = getVegClass(item.veg_or_nonveg);
+        const vegLabel = vegClass === 'veg' ? '🟢 Veg' : '🔴 Non-Veg';
+        return `
+    <div class="card menu-card" style="${!item.availability ? 'opacity:0.5;' : ''}" id="menu-item-${item.item_id}">
+      <div class="menu-card-header">
+        <div class="menu-item-name">${escHtml(item.item_name)}</div>
+        <div class="menu-item-price">₹${item.price}</div>
+      </div>
+      ${item.description ? `<div class="menu-item-desc">${escHtml(item.description)}</div>` : ''}
+      <div class="menu-card-footer">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="veg-badge ${vegClass}">${vegLabel}</span>
+          ${item.rating ? `<span style="font-size:12px;color:var(--text-muted)">⭐ ${item.rating}</span>` : ''}
+        </div>
+        <div>
+          ${item.availability
+            ? `<div class="qty-control" id="qc-${item.item_id}">
+                 <button class="btn btn-primary btn-sm" onclick="addToCartFromMenu('${restaurantId}','${item.item_id}','${escJs(item.item_name)}',${item.price})">
+                   + Add
+                 </button>
+               </div>`
+            : `<span style="font-size:12px;color:var(--danger)">Unavailable</span>`
+          }
+        </div>
+      </div>
+    </div>`;
+      }).join('');
+    }
+
+    /* ================================================================
+       CART OPERATIONS
+    ================================================================ */
+    async function addToCartFromMenu(restaurantId, itemId, itemName, price) {
+      if (!isRegistered()) {
+        toast('Please complete your profile first to use the cart', 'warning');
+        showTab('profile');
+        return;
+      }
+      await addItemToCart(restaurantId, itemId, itemName, price, 1);
+    }
+
+    async function addItemToCart(restaurantId, itemId, itemName, price, quantity) {
+      try {
+        const r = await fetch(`${API_BASE}/order/add`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            restaurant_id: restaurantId,
+            item_id: itemId,
+            item_name: itemName,
+            price: price,
+            quantity: quantity
+          })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Failed to add item');
+        cartData = data.cart;
+        updateCartBadge(cartData);
+        toast(`✅ ${itemName} added to cart!`, 'success');
+        return data.cart;
+      } catch (e) {
+        toast(e.message, 'error');
+        return null;
+      }
+    }
+
+    async function removeFromCart(itemId) {
+      try {
+        const r = await fetch(`${API_BASE}/order/remove`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, item_id: itemId })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Failed to remove');
+        cartData = data.cart;
+        updateCartBadge(cartData);
+        toast('Item removed', 'info', 2000);
+        loadCart(); /* refresh cart view */
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    }
+
+    async function loadCart() {
+      const el = document.getElementById('cart-content');
+      el.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+
+      if (!isRegistered()) {
+        el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">👤</div>
+      <div class="empty-title">Register to use the cart</div>
+      <div class="empty-sub">Complete your profile to start ordering</div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="showTab('profile')">Go to Profile</button>
+    </div>`;
+        return;
+      }
+
+      try {
+        const r = await fetch(`${API_BASE}/cart?user_id=${encodeURIComponent(userId)}`);
+        if (r.status === 404) {
+          cartData = null;
+          updateCartBadge(null);
+          el.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">🛒</div>
+        <div class="empty-title">Your cart is empty</div>
+        <div class="empty-sub">Browse restaurants and add items to get started</div>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="showTab('restaurants')">Browse Restaurants</button>
+      </div>`;
+          return;
+        }
+        const data = await r.json();
+        cartData = data.cart;
+        updateCartBadge(cartData);
+        renderCart(cartData);
+      } catch (e) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+      }
+    }
+
+    function renderCart(cart) {
+      const el = document.getElementById('cart-content');
+      const items = cart.items || [];
+      if (!items.length) {
+        el.innerHTML = '<div class="empty-state"><div class="empty-icon">🛒</div><div class="empty-title">Your cart is empty</div></div>';
+        return;
+      }
+
+      const subtotal = cart.cart_total || 0;
+      const delivery = 40;
+      const tax = Math.round(subtotal * 0.05 * 100) / 100;
+      const total = Math.round((subtotal + delivery + tax) * 100) / 100;
+
+      el.innerHTML = `
+    <div style="max-width:640px;">
+      <div id="cart-items-list">
+        ${items.map(item => `
+          <div class="cart-item">
+            <div class="cart-item-info">
+              <div class="cart-item-name">${escHtml(item.item_name)}</div>
+              <div class="cart-item-price">₹${item.price} × ${item.quantity}</div>
+            </div>
+            <div class="cart-item-total">₹${Math.round(item.price * item.quantity * 100) / 100}</div>
+            <button class="btn btn-danger btn-sm" onclick="removeFromCart('${item.item_id}')">✕</button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="cart-summary">
+        <div class="cart-summary-row"><span>Subtotal</span><span>₹${subtotal}</span></div>
+        <div class="cart-summary-row"><span>Delivery fee</span><span>₹${delivery}</span></div>
+        <div class="cart-summary-row"><span>GST (5%)</span><span>₹${tax}</span></div>
+        <div class="cart-summary-row total"><span>Total</span><span>₹${total}</span></div>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-lg" onclick="openCheckout()">🚀 Proceed to Checkout</button>
+        <button class="btn btn-ghost" onclick="showTab('restaurants')">+ Add More Items</button>
+      </div>
+    </div>`;
+    }
+
+    function updateCartBadge(cart) {
+      const badge = document.getElementById('cart-badge');
+      const count = cart ? (cart.items || []).reduce((s, i) => s + i.quantity, 0) : 0;
+      if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    /* ================================================================
+       CHECKOUT MODAL
+    ================================================================ */
+    function openCheckout() {
+      if (!cartData || !(cartData.items || []).length) { toast('Cart is empty', 'warning'); return; }
+      const items = cartData.items;
+      const subtotal = cartData.cart_total || 0;
+      const total = Math.round((subtotal + 40 + subtotal * 0.05) * 100) / 100;
+
+      openModal('🚀 Checkout', `
+    <div class="checkout-item-list">
+      ${items.map(i => `<div class="checkout-item-row"><span>${escHtml(i.item_name)} × ${i.quantity}</span><span>₹${Math.round(i.price * i.quantity * 100) / 100}</span></div>`).join('')}
+    </div>
+    <div class="checkout-total-row"><span>Total Payable</span><span>₹${total}</span></div>
+    <div style="height:16px"></div>
+    <div class="form-group">
+      <label class="form-label">Delivery Address *</label>
+      <textarea id="checkout-addr" class="form-textarea" rows="2" placeholder="Full delivery address">${getDefaultAddress()}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Payment Method</label>
+      <select id="checkout-pay" class="form-select">
+        <option value="cod">Cash on Delivery</option>
+        <option value="upi">UPI</option>
+        <option value="card">Credit / Debit Card</option>
+        <option value="wallet">Wallet</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="placeOrder()">Confirm Order ✓</button>
+  `);
+    }
+
+    async function placeOrder() {
+      const addr = document.getElementById('checkout-addr').value.trim();
+      const pay = document.getElementById('checkout-pay').value;
+      if (!addr) { toast('Please enter a delivery address', 'warning'); return; }
+
+      const btn = document.querySelector('#modal-body .btn-primary');
+      btn.disabled = true;
+      btn.textContent = 'Placing order…';
+
+      try {
+        const r = await fetch(`${API_BASE}/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, payment_method: pay, delivery_address: addr })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Checkout failed');
+        const order = data.order;
+        cartData = null;
+        updateCartBadge(null);
+        closeModal();
+        toast(`🎉 Order placed! ID: ${order.order_id}`, 'success', 5000);
+        pendingReviewOrderId = order.order_id;
+        setTimeout(() => {
+          showTab('orders');
+          setTimeout(() => offerReview(order.order_id, order.restaurant_id), 1500);
+        }, 1000);
+      } catch (e) {
+        toast(e.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Confirm Order ✓';
+      }
+    }
+
+    function offerReview(orderId, restaurantId) {
+      openModal('⭐ Leave a Review', `
+    <p style="font-size:14px;color:var(--text-secondary);margin-bottom:16px">How was your order? Your feedback helps others!</p>
+    <div class="review-stars-row" id="review-star-row">
+      ${[1, 2, 3, 4, 5].map(n => `<span onclick="setReviewStar(${n})" data-n="${n}">★</span>`).join('')}
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label class="form-label">Your Review</label>
+      <textarea id="review-text" class="form-textarea" placeholder="Tell us about your experience…"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+      <button class="btn btn-ghost" onclick="closeModal()">Skip</button>
+      <button class="btn btn-primary" onclick="submitReview('${restaurantId}','${orderId}')">Submit Review</button>
+    </div>
+  `);
+      selectedRating = 0;
+    }
+
+    function setReviewStar(n) {
+      selectedRating = n;
+      document.querySelectorAll('#review-star-row span').forEach(s => {
+        s.classList.toggle('active', parseInt(s.dataset.n) <= n);
+      });
+    }
+
+    async function submitReview(restaurantId, orderId) {
+      const text = document.getElementById('review-text').value.trim();
+      if (!selectedRating) { toast('Please select a rating', 'warning'); return; }
+      if (text.length < 5) { toast('Please write at least 5 characters', 'warning'); return; }
+
+      try {
+        const r = await fetch(`${API_BASE}/reviews`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            restaurant_id: restaurantId,
+            user_id: userId,
+            order_id: orderId,
+            rating: selectedRating,
+            review_text: text,
+            review_images: []
+          })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Review failed');
+        closeModal();
+        toast('🙏 Review submitted! Thank you.', 'success');
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    }
+
+    function openReviewForm(restaurantId) {
+      offerReview(pendingReviewOrderId || 'ORD-MANUAL', restaurantId);
+    }
+
+    async function viewReviews(restaurantId) {
+      try {
+        const [revRes, sentRes] = await Promise.allSettled([
+          fetch(`${API_BASE}/reviews/${restaurantId}`),
+          fetch(`${API_BASE}/sentiment/${restaurantId}`)
+        ]);
+        const revData = revRes.status === 'fulfilled' ? await revRes.value.json() : {};
+        const sentData = sentRes.status === 'fulfilled' ? await sentRes.value.json() : {};
+        const reviews = revData.reviews || [];
+        const sent = sentData.sentiment || {};
+
+        let sentHtml = '';
+        if (sent.total_reviews) {
+          sentHtml = `
+        <div style="background:var(--bg-primary);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px">SENTIMENT ANALYSIS</div>
+          <div style="display:flex;gap:16px;font-size:13px;">
+            <span>😊 Positive: <strong style="color:var(--success)">${sent.positive_pct}%</strong></span>
+            <span>😐 Neutral: <strong style="color:var(--warning)">${sent.neutral_pct}%</strong></span>
+            <span>😠 Negative: <strong style="color:var(--danger)">${sent.negative_pct}%</strong></span>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:6px">Avg Rating: ⭐ ${sent.average_rating}</div>
+        </div>`;
+        }
+
+        const revHtml = reviews.slice(0, 10).map(rv => `
+      <div style="border-bottom:1px solid var(--border);padding:12px 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:13px;font-weight:600">${'★'.repeat(Math.round(rv.rating))} <span style="color:var(--text-muted);font-weight:400">(${rv.rating})</span></span>
+          <span style="font-size:11px;color:var(--text-muted)">${new Date(rv.created_at || Date.now()).toLocaleDateString()}</span>
+        </div>
+        <div style="font-size:13px;color:var(--text-secondary)">${escHtml(rv.review_text)}</div>
+      </div>`).join('');
+
+        openModal(`💬 Reviews (${reviews.length})`, sentHtml + revHtml || '<p style="color:var(--text-muted)">No reviews yet.</p>');
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    }
+
+    /* ================================================================
+       ORDERS
+    ================================================================ */
+    async function loadOrders() {
+      const el = document.getElementById('orders-content');
+      el.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+
+      if (!isRegistered()) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">Register to view orders</div>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="showTab('profile')">Go to Profile</button></div>`;
+        return;
+      }
+
+      try {
+        const r = await fetch(`${API_BASE}/orders?user_id=${encodeURIComponent(userId)}`);
+        const data = await r.json();
+        const orders = data.orders || [];
+
+        if (!orders.length) {
+          el.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div>
+        <div class="empty-title">No orders yet</div>
+        <div class="empty-sub">Place your first order from the Restaurants tab</div>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="showTab('restaurants')">Browse Restaurants</button></div>`;
+          return;
+        }
+
+        el.innerHTML = `<div style="max-width:700px">` +
+          orders.map(o => {
+            const statusClass = { confirmed: 's-confirmed', preparing: 's-preparing', delivered: 's-delivered', cancelled: 's-cancelled' }[o.order_status] || 's-confirmed';
+            const date = o.ordered_at ? new Date(o.ordered_at).toLocaleString() : '—';
+            return `
+        <div class="order-card">
+          <div class="order-header">
+            <div>
+              <div style="font-size:15px;font-weight:700">${escHtml(o.order_id)}</div>
+              <div class="order-id">📍 Restaurant: ${escHtml(o.restaurant_id)} &nbsp;|&nbsp; ${escHtml(o.payment_method || 'cod').toUpperCase()}</div>
+              <div class="order-date">🕐 ${date}</div>
+            </div>
+            <span class="order-status-badge ${statusClass}">${o.order_status}</span>
+          </div>
+          <ul class="order-items">
+            ${(o.items || []).map(i => `<li>${escHtml(i.item_name)} <span>×${i.quantity} — ₹${Math.round(i.price * i.quantity * 100) / 100}</span></li>`).join('')}
+          </ul>
+          <div class="order-total-row">
+            <span>Final Amount</span>
+            <span>₹${o.final_amount || o.total_amount}</span>
+          </div>
+        </div>`;
+          }).join('') + `</div>`;
+      } catch (e) {
+        el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+      }
+    }
+
+    /* ================================================================
+       AI SEARCH
+    ================================================================ */
+    async function doHybridSearch() {
+      const q = document.getElementById('ai-search-q').value.trim();
+      if (!q) { toast('Enter a search query', 'warning'); return; }
+      document.getElementById('search-session-info').style.display = 'none';
+      await runAISearch('/search/hybrid', q);
+    }
+
+    async function doSemanticSearch() {
+      const q = document.getElementById('ai-search-q').value.trim();
+      if (!q) { toast('Enter a search query', 'warning'); return; }
+      document.getElementById('search-session-info').style.display = 'none';
+      await runAISearch('/search/semantic', q);
+    }
+
+    async function doConversationalSearch() {
+      const q = document.getElementById('ai-search-q').value.trim();
+      if (!q) { toast('Enter a message', 'warning'); return; }
+      document.getElementById('search-session-info').style.display = '';
+
+      const container = document.getElementById('search-results');
+      container.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+
+      try {
+        const r = await fetch(`${API_BASE}/search/conversation`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: q, session_id: convSessionId, user_id: userId || undefined })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Conversational search failed');
+
+        let html = '';
+        if (data.response_text) {
+          html += `<div style="background:var(--bg-card);border:1px solid var(--border);border-left:4px solid var(--accent);
+                border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:20px;font-size:14px;
+                color:var(--text-secondary);line-height:1.7">${escHtml(data.response_text)}</div>`;
+        }
+        html += renderSearchResults(data.items || []);
+        container.innerHTML = html;
+      } catch (e) {
+        container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div></div>`;
+        toast(e.message, 'error');
+      }
+    }
+
+    async function runAISearch(endpoint, q) {
+      const container = document.getElementById('search-results');
+      container.innerHTML = '<div class="loader-wrap"><div class="spinner"></div></div>';
+      try {
+        const r = await fetch(`${API_BASE}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: q, user_id: userId || undefined })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Search failed');
+        container.innerHTML = renderSearchResults(data.items || []);
+        if (data.total_results === 0) toast('No results found. Try a different query.', 'info');
+      } catch (e) {
+        container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">${e.message}</div><div class="empty-sub">Ensure the AI services (Qdrant, Gemini) are configured.</div></div>`;
+        toast(e.message, 'error');
+      }
+    }
+
+    function renderSearchResults(items) {
+      if (!items.length) return `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No results found</div></div>`;
+
+      return `<div style="margin-bottom:12px;font-size:13px;color:var(--text-muted)">${items.length} result${items.length > 1 ? 's' : ''} found</div>`
+        + `<div class="grid-2">`
+        + items.map(item => {
+          const vegClass = getVegClass(item.veg_or_nonveg);
+          const vegLabel = vegClass === 'veg' ? '🟢 Veg' : '🔴 Non-Veg';
+          return `
+      <div class="search-result">
+        <div class="search-result-header">
+          <div>
+            <div class="search-result-name">${escHtml(item.item_name)}</div>
+            <div class="search-result-restaurant">🏠 ${escHtml(item.restaurant_name || item.restaurant_id)} &nbsp;|&nbsp; <span class="veg-badge ${vegClass}" style="display:inline-block">${vegLabel}</span></div>
+          </div>
+          <div class="search-result-price">₹${item.price}</div>
+        </div>
+        ${item.description ? `<div style="font-size:12px;color:var(--text-muted)">${escHtml(item.description)}</div>` : ''}
+        ${item.reason ? `<div class="search-result-reason">${escHtml(item.reason)}</div>` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="score-bar-wrap" style="flex:1;margin-right:12px">
+            <div class="score-bar"><div class="score-bar-fill" style="width:${Math.round((item.score || 0) * 100)}%"></div></div>
+            <span class="score-val">${Math.round((item.score || 0) * 100)}%</span>
+          </div>
+          <span style="font-size:12px;color:var(--text-muted)">⭐ ${item.rating || '—'}</span>
+          ${isRegistered() ? `<button class="btn btn-primary btn-sm" style="margin-left:10px"
+            onclick="addItemToCart('${item.restaurant_id}','${item.item_id}','${escJs(item.item_name)}',${item.price})">
+            + Add</button>` : ''}
+        </div>
+      </div>`;
+        }).join('')
+        + `</div>`;
+    }
+
+    function resetConversation() {
+      convSessionId = crypto.randomUUID();
+      document.getElementById('search-session-info').style.display = 'none';
+      document.getElementById('search-results').innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">Conversation reset</div></div>`;
+      toast('Conversation session reset', 'info', 2000);
+    }
+
+    /* ================================================================
+       AI SEARCH — keyboard shortcut
+    ================================================================ */
+    document.getElementById('ai-search-q').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doHybridSearch();
+    });
+
+    /* ================================================================
+       PROFILE / USER
+    ================================================================ */
+    function isRegistered() {
+      return !!localStorage.getItem('spicebot_registered');
+    }
+
+    function getDefaultAddress() {
+      try {
+        const p = JSON.parse(localStorage.getItem('spicebot_profile') || '{}');
+        const addrs = p.addresses || [];
+        if (addrs.length) return addrs[0].full_address + ', ' + addrs[0].city + ' ' + addrs[0].pincode;
+      } catch (_) { }
+      return '';
+    }
+
+    function updateSidebarUser(name, uid) {
+      document.getElementById('sidebar-avatar').textContent = (name || 'G')[0].toUpperCase();
+      document.getElementById('sidebar-uname').textContent = name || 'Guest';
+      document.getElementById('sidebar-uid').textContent = uid || userId;
+    }
+
+    async function registerUser() {
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const phone = document.getElementById('reg-phone').value.trim();
+      const cuisines = document.getElementById('reg-cuisines').value.split(',').map(s => s.trim()).filter(Boolean);
+      const addr = document.getElementById('reg-addr').value.trim();
+      const city = document.getElementById('reg-city').value.trim();
+      const state = document.getElementById('reg-state').value.trim();
+      const pin = document.getElementById('reg-pin').value.trim();
+
+      if (!name || !email || !phone) { toast('Name, email and phone are required', 'warning'); return; }
+
+      const addresses = addr ? [{ label: 'Home', full_address: addr, city, state, pincode: pin, is_default: true }] : [];
+
+      const btn = document.querySelector('#profile-reg-form .btn-primary');
+      btn.disabled = true;
+      btn.textContent = 'Registering…';
+
+      try {
+        const r = await fetch(`${API_BASE}/user/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, phone, addresses, preferred_language: 'en', favorite_cuisines: cuisines })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.detail || 'Registration failed');
+        const user = data.user;
+        userId = user.user_id;
+        localStorage.setItem('spicebot_user_id', userId);
+        localStorage.setItem('spicebot_registered', '1');
+        localStorage.setItem('spicebot_profile', JSON.stringify(user));
+        updateSidebarUser(user.name, user.user_id);
+        showProfileDetails(user);
+        toast(`🎉 Welcome, ${user.name}!`, 'success');
+      } catch (e) {
+        toast(e.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+      }
+    }
+
+    async function loadProfileByUid() {
+      const uid = document.getElementById('manual-uid').value.trim();
+      if (!uid) { toast('Enter a User ID', 'warning'); return; }
+      await loadUserProfile(uid);
+    }
+
+    async function loadUserProfile(uid) {
+      try {
+        const r = await fetch(`${API_BASE}/user/${encodeURIComponent(uid)}`);
+        if (r.status === 404) { toast('User not found', 'error'); return; }
+        const data = await r.json();
+        const user = data.user;
+        userId = user.user_id;
+        localStorage.setItem('spicebot_user_id', userId);
+        localStorage.setItem('spicebot_registered', '1');
+        localStorage.setItem('spicebot_profile', JSON.stringify(user));
+        updateSidebarUser(user.name, user.user_id);
+        showProfileDetails(user);
+        toast(`Loaded profile for ${user.name}`, 'success');
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    }
+
+    function showProfileDetails(user) {
+      document.getElementById('profile-form-card').querySelector('h3').textContent = '✅ Registered Account';
+      document.getElementById('profile-reg-form').style.display = 'none';
+      document.getElementById('profile-details-card').style.display = '';
+
+      const addrs = (user.addresses || []).map(a => `<li>${escHtml(a.label)}: ${escHtml(a.full_address)}, ${escHtml(a.city)}</li>`).join('');
+
+      document.getElementById('profile-details-content').innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <div style="font-size:16px;font-weight:700">${escHtml(user.name)}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <div style="font-size:14px;color:var(--text-secondary)">${escHtml(user.email)}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone</label>
+      <div style="font-size:14px;color:var(--text-secondary)">${escHtml(user.phone)}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">User ID</label>
+      <code style="font-size:12px;color:var(--accent-light)">${escHtml(user.user_id)}</code>
+    </div>
+    ${user.favorite_cuisines?.length ? `<div class="form-group"><label class="form-label">Favourite Cuisines</label><div style="font-size:13px;color:var(--text-secondary)">${user.favorite_cuisines.join(', ')}</div></div>` : ''}
+    ${addrs ? `<div class="form-group"><label class="form-label">Addresses</label><ul style="font-size:13px;color:var(--text-secondary);padding-left:16px">${addrs}</ul></div>` : ''}
+  `;
+    }
+
+    function logoutUser() {
+      localStorage.removeItem('spicebot_registered');
+      localStorage.removeItem('spicebot_profile');
+      userId = 'GUEST-' + crypto.randomUUID().split('-')[0].toUpperCase();
+      localStorage.setItem('spicebot_user_id', userId);
+      updateSidebarUser('Guest', userId);
+      document.getElementById('profile-form-card').querySelector('h3').textContent = '🆕 Register Account';
+      document.getElementById('profile-reg-form').style.display = '';
+      document.getElementById('profile-details-card').style.display = 'none';
+      cartData = null;
+      updateCartBadge(null);
+      toast('Switched to guest mode', 'info');
+    }
+
+    function loadProfile() {
+      document.getElementById('session-uid-display').value = userId;
+      if (isRegistered()) {
+        try {
+          const user = JSON.parse(localStorage.getItem('spicebot_profile') || '{}');
+          if (user.user_id) showProfileDetails(user);
+        } catch (_) { }
+      }
+    }
+
+    /* ================================================================
+       INIT — restore session
+    ================================================================ */
+    (function init() {
+      updateSidebarUser('Guest', userId);
+      document.getElementById('session-uid-display') && (document.getElementById('session-uid-display').value = userId);
+
+      if (isRegistered()) {
+        try {
+          const user = JSON.parse(localStorage.getItem('spicebot_profile') || '{}');
+          if (user.name) updateSidebarUser(user.name, user.user_id);
+        } catch (_) { }
+
+        /* Preload cart badge */
+        fetch(`${API_BASE}/cart?user_id=${encodeURIComponent(userId)}`)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => { if (data) { cartData = data.cart; updateCartBadge(data.cart); } })
+          .catch(() => { });
+      }
+    })();
+
+    /* ================================================================
+       UTILITIES
+    ================================================================ */
+    function escHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function escJs(str) {
+      return String(str || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+  </script>
+
+</body>
+
+</html>

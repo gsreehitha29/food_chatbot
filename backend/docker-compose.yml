@@ -1,0 +1,37 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+      - "8005:8005"
+    environment:
+      - MONGODB_URI=mongodb+srv://245123750002_db_user:rMhxd8UUsFgidy6D@chatbot-cluster.tlksy4i.mongodb.net/?appName=chatbot-cluster
+      - DATABASE_NAME=chatbot_db
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - WEATHER_API_KEY=${WEATHER_API_KEY}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - qdrant
+      - redis
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  qdrant_storage:
+  redis_data:

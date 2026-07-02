@@ -1,0 +1,19 @@
+# =============================================================
+# Python Dependencies for Food Chatbot Backend
+# =============================================================
+# Install all dependencies with:
+#   pip install -r requirements.txt
+# =============================================================
+
+fastapi==0.115.6
+uvicorn==0.34.0
+pymongo==4.10.1
+pydantic==2.10.4
+python-dotenv==1.0.1
+textblob==0.18.0
+vaderSentiment==3.3.2
+langchain==0.3.12
+langchain-google-genai==2.0.6
+qdrant-client==1.12.1
+redis==5.2.1
+
