@@ -21,7 +21,7 @@ DATABASE_NAME = os.getenv("DATABASE_NAME", "chatbot_database")
 # Google Gemini API Config
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "models/gemini-embedding-001")
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-1.5-flash")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
 
 # Qdrant Vector DB Config
 # If QDRANT_HOST is not specified, we will fall back to in-memory mode (:memory:)

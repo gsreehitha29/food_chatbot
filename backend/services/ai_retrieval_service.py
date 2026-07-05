@@ -247,7 +247,7 @@ class AIRetrievalService:
         )
 
         # Rank results
-        results = self._rank_and_score_items(query, matches, generate_reasoning=True)
+        results = self._rank_and_score_items(query, matches, generate_reasoning=False)
 
         # Cache results
         self.cache_service.set_json(cache_key, [item.model_dump() for item in results])
@@ -293,9 +293,19 @@ class AIRetrievalService:
                 for item in matches
                 if item.get("price", 0) <= max_price
             ]
+        food_item = getattr(filters, "food_item", None)
 
+        if food_item:
+            matches = [
+                item
+                for item in matches
+                if food_item.lower() in item.get("item_name", "").lower()
+            ]
+        print("\n===== AFTER FOOD FILTER =====")
+        for item in matches:
+            print(item["item_name"])
         # 4. Rank and Score matching candidates
-        results = self._rank_and_score_items(vector_query, matches, generate_reasoning=True)
+        results = self._rank_and_score_items(vector_query, matches, generate_reasoning=False)
 
         output = {
             "query_understanding": filters,
@@ -350,7 +360,7 @@ class AIRetrievalService:
 
         # 4. Rank results
         print("STEP 5")
-        results = self._rank_and_score_items(vector_query, matches, generate_reasoning=True)
+        results = self._rank_and_score_items(vector_query, matches, generate_reasoning=False)
         print("STEP 6")
         # 5. Generate conversational assistant response text
         response_text = self.llm_service.generate_conversational_response(
@@ -436,7 +446,7 @@ class AIRetrievalService:
             query_explanation = "top rated overall menu highlights"
 
         # 6. Rank and Score
-        results = self._rank_and_score_items(query_explanation, candidate_matches, generate_reasoning=True)
+        results = self._rank_and_score_items(query_explanation, candidate_matches, generate_reasoning=False)
 
         # Cache results
         self.cache_service.set_json(cache_key, [item.model_dump() for item in results])

@@ -113,15 +113,19 @@ class LLMService:
             if not intent:
                 intent = query
                 
-            return QueryFilters(
+            result =  QueryFilters(
+                food_item=food_item,
                 cuisine=cuisine,
                 max_price=max_price,
                 veg_or_nonveg=veg_or_nonveg,
                 spice_level=spice_level,
                 taste_preference=taste_preference,
                 meal_type=meal_type,
-                semantic_intent=intent
+                semantic_intent=intent,
+    
             )
+            print(result.model_dump())
+            return result
 
         system_instruction = (
             "You are an expert query parser for a food ordering platform. "
@@ -339,6 +343,23 @@ class LLMService:
         except Exception as e:
             logger.error(f"Error generating conversational response: {str(e)}")
             if items:
-                return f"I found some options for you! I highly recommend the {items[0]['item_name']} from {items[0]['restaurant_name']}."
-            return "I couldn't find any items matching your preferences. Can I help you find something else?"
-
+                top = items[0]
+                response = (
+                    f"I found {len(items)} matching dishes.\n\n"
+                    f"My top recommendation is **{top['item_name']}** "
+                    f"from **{top['restaurant_name']}** "
+                    f"for ₹{top['price']}.\n"
+                )
+                if len(items) > 1:
+                    response += "\nYou may also like:\n"
+                    for item in items[1:4]:
+                        response += (
+                            f"• {item['item_name']} "
+                            f"(₹{item['price']}) - "
+                            f"{item['restaurant_name']}\n"
+                        )
+                return response
+            return (
+                "Sorry, I couldn't find any dishes matching your preferences. "
+                "Try searching with a different cuisine, item name, or budget."
+            )

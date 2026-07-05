@@ -22,7 +22,7 @@ class QueryFilters(BaseModel):
     taste_preference: Optional[str] = Field(None, description="Taste category: cheesy, crispy, sweet, sour, savory")
     meal_type: Optional[str] = Field(None, description="Meal category: breakfast, lunch, dinner, snack, dessert")
     semantic_intent: Optional[str] = Field(None, description="Cleaned core search phrase for vector matching")
-
+    food_item: Optional[str] = Field(None, description="Specific food item extracted from query")
 
 class SearchRequest(BaseModel):
     """Request payload for semantic and hybrid search."""
