@@ -1,4 +1,4 @@
-from services.intent_router import detect_intent
+from ...services.intent_router import detect_intent
 
 def intent_router(state):
 

@@ -1,28 +1,24 @@
 from langgraph.graph import StateGraph, END
 
-from graph.nodes.intent_node import intent_router
-from graph.nodes.browse_category import browse_menu_node
-from graph.nodes.menu_node import menu_items_node
-from graph.nodes.Recommendation import recommendation_node
-from graph.nodes.Ingredient import ingredient_node
-from graph.nodes.orders_node import order_node
-from graph.nodes.show_cart_node import summary_node
-from graph.nodes.checkout_node import checkout_node
-from graph.nodes.preference import preference_node
-from graph.nodes.retrieve_node import retrieve_node
-from graph.nodes.context_node import context_node
+from .nodes.intent_node import intent_router
+
+from .nodes.Recommendation import recommendation_node
+from .nodes.Ingredient import ingredient_node
+from .nodes.orders_node import order_node
+from .nodes.show_cart_node import summary_node
+
+from .nodes.preference import preference_node
+from .nodes.retrieve_node import retrieve_node
+from .nodes.context_node import context_node
 from langgraph.checkpoint.memory import InMemorySaver 
 
-from graph.states import RestaurantState
+from .states import RestaurantState
 
 builder = StateGraph(RestaurantState)
 
 # Nodes
 builder.add_node("intent_router", intent_router)
 
-builder.add_node("browse_menu", browse_menu_node)
-
-builder.add_node("menu", menu_items_node)
 
 builder.add_node("preference", preference_node)
 
@@ -34,7 +30,6 @@ builder.add_node("add_to_cart", order_node)
 
 builder.add_node("order_summary", summary_node)
 
-builder.add_node("checkout", checkout_node)
 
 builder.add_node("retrieve",retrieve_node)
 
@@ -52,14 +47,11 @@ builder.add_conditional_edges(
     "intent_router",
     route_intent,
     {
-        "browse_menu": "browse_menu",
-        "category_selected": "menu",
         "recommendation": "recommendation",
         "preference":"preference",
         "ingredient": "ingredient",
         "place_order": "add_to_cart",
         "summary": "order_summary",
-        "checkout": "checkout",
         "general":END
         
     }
@@ -82,12 +74,12 @@ builder.add_edge(
     "recommendation",
     END
 )
-builder.add_edge("browse_menu", END)
-builder.add_edge("menu", END)
+
+
 
 
 builder.add_edge("ingredient", END)
-builder.add_edge("checkout", END)
+
 
 builder.add_edge("order_summary", END)
 checkpointer = InMemorySaver()

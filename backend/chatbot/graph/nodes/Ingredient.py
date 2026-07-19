@@ -1,6 +1,6 @@
-from adapter.mcp_adapter import menu_client
-from services.extract_item_name import extract_item_name
-from services.llm import llm
+from ...adapter.mcp_adapter import menu_client
+from ...services.extract_item_name import extract_item_name
+from ...services.llm import llm
 async def ingredient_node(state):
 
     item = extract_item_name(

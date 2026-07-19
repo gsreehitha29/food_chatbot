@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from services.llm import llm
+from .llm import llm
 
 class OrderItem(BaseModel):
     item_name: str

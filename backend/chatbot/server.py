@@ -5,10 +5,26 @@ import socketio
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from services.llm import llm
-from graph.graph_builder import graph
-from services.location_service import get_city
-app = FastAPI()
+from .services.llm import llm
+from .graph.graph_builder import graph
+from .services.location_service import get_city
+from contextlib import asynccontextmanager
+from .tools.build_index import build_index   # adjust path
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("=== Server startup ===")
+    try:
+        await build_index()
+        print("=== FAISS index created ===")
+    except Exception as e:
+        import traceback
+        print("Error building FAISS index:")
+        traceback.print_exc()
+    yield
+
+app = FastAPI(lifespan=lifespan)
+
 
 sio = socketio.AsyncServer(
     async_mode="asgi",

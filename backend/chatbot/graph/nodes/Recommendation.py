@@ -1,6 +1,6 @@
-from services.llm import llm
-from services.ranking_service import rank_dishes
-from services.preference_db import get_preferences
+from ...services.llm import llm
+from ...services.ranking_service import rank_dishes
+from ...services.preference_db import get_preferences
 
 
 async def recommendation_node(state):

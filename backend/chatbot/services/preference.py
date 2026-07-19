@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from services.llm import llm
+from .llm import llm
 
 
 class UserPreferences(BaseModel):

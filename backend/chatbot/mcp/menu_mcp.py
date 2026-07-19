@@ -4,7 +4,7 @@ mcp = FastMCP("RestaurantMenuMCP")
 
 from pymongo import MongoClient
 
-client = MongoClient("mongodb-url")
+client = MongoClient("mongodb+srv://Cluster47062:XLxGVu26VDbfppvU@cluster47062.yhvoyo7.mongodb.net/")
 
 db = client.chatbot
 menu = db.menu
@@ -26,13 +26,13 @@ def get_menu_items(category: str):
 @mcp.tool()
 def search_menu(query: str):
     """
-    Search menu items by name (case-insensitive)
+    Search menu items by dish name (case-insensitive)
     """
 
     return list(
         menu.find(
             {
-                "item_name": {
+                "dish_name": {
                     "$regex": query,
                     "$options": "i"
                 }
@@ -42,15 +42,15 @@ def search_menu(query: str):
     )
 
 @mcp.tool()
-def get_item_details(item_name: str):
+def get_item_details(dish_name: str):
     """
     Get exact item details from MongoDB menu collection
     """
 
     item = menu.find_one(
         {
-            "item_name": {
-                "$regex": f"^{item_name}$",
+            "dish_name": {
+                "$regex": f"^{dish_name}$",
                 "$options": "i"
             }
         },

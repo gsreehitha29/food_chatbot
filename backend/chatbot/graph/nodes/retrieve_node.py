@@ -1,4 +1,4 @@
-from tools.retriever import retrieve_dishes
+from ...tools.retriever import retrieve_dishes
 
 
 async def retrieve_node(state):

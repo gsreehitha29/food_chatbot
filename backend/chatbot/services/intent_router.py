@@ -1,12 +1,10 @@
-from services.llm import llm
+from .llm import llm
 from pydantic import BaseModel
 from typing import Literal
 
 
 class Intent(BaseModel):
     intent: Literal[
-        "browse_menu",
-        'category_selected',
         "preference",
         "ingredients_info",
         "popular_items",
@@ -42,127 +40,8 @@ Return structured output only.
 
 INTENTS AND DEFINITIONS:
 
-1. browse_menu
 
-User wants to START browsing the restaurant menu.
-This means the system should show ONLY MENU CATEGORIES first.
-
-This intent does NOT include showing food items.
-It is ONLY the first step of exploration.
-
-AVAILABLE CATEGORIES:
-- Pizza
-- Starters
-- Main Course
-- Rice & Biryani
-
----
-
-FLOW RULE:
-After browse_menu → system must wait for category_selected
-
----
-
-RULES:
-- Use ONLY when user asks for menu or food options in general
-- NEVER use if user mentions a category or dish
-- This is ALWAYS the ENTRY point of browsing flow
-
----
-
-EXAMPLES:
-
-User: "menu"
-→ browse_menu
-
-User: "show menu"
-→ browse_menu
-
-User: "what do you have"
-→ browse_menu
-
-User: "I want food"
-→ browse_menu
-
-User: "show me options"
-→ browse_menu
-
----
-
-DO NOT USE:
-
-User: "pizza"
-→ category_selected ❌
-
-User: "starters"
-→ category_selected ❌
-
-User: "paneer tikka"
-→ place_order ❌
-
-2. category_selected
-
-User selects a MENU CATEGORY after browsing.
-
-This intent happens ONLY AFTER browse_menu.
-
-After this intent:
-👉 SHOW ITEMS INSIDE THE SELECTED CATEGORY
-
-AVAILABLE CATEGORIES:
-- Pizza
-- Starters
-- Main Course
-- Rice & Biryani
-
----
-
-FLOW RULE:
-browse_menu → category_selected → show menu items → wait for item selection
-
----
-
-RULES:
-- If user mentions a category → category_selected
-- If user is continuing after browse_menu → category_selected
-- Must extract exact category name
-- This intent ALWAYS triggers fetching items inside that category
-
----
-
-EXAMPLES:
-
-User: "pizza"
-→ category_selected (Pizza)
-
-User: "Pizza"
-→ category_selected (Pizza)
-
-User: "show pizza"
-→ category_selected (Pizza)
-
-User: "starters"
-→ category_selected (Starters)
-
-User: "what in starters"
-→ category_selected (Starters)
-
-User: "main course options"
-→ category_selected (Main Course)
-
-User: "rice biryani"
-→ category_selected (Rice & Biryani)
-
----
-
-IMPORTANT BEHAVIOR:
-
-When category_selected is triggered:
-→ DO NOT show categories again
-→ SHOW ONLY ITEMS in that category
----
-
-3. preference
+1. preference
 User wants food based on preference or constraints.
 
 EXAMPLES:
@@ -180,7 +59,7 @@ User: "chicken dishes"
 
 ---
 
-4. ingredients_info
+2. ingredients_info
 User asks about ingredients, allergens, nutrition, or recipe details.
 
 EXAMPLES:
@@ -198,7 +77,7 @@ User: "does it contain gluten"
 
 ---
 
-5. place_order
+3. place_order
 
 User wants to select items, add items to cart, or order food.
 
@@ -231,7 +110,7 @@ RULES:
 
 ---
 
-6. checkout
+4. checkout
 
 User wants to finalize the order and complete purchase.
 
@@ -275,7 +154,7 @@ RULES:
 
 ---
 
-8. summary
+5. summary
 
 User wants to view the cart or order summary.
 
@@ -301,7 +180,7 @@ User: "show my order"
 
 ---
 
-9. general
+6. general
 
 Anything unrelated, conversational, or unclear.
 

@@ -7,7 +7,7 @@ mcp = FastMCP("OrderMCP")
 
 # simple in-memory cart (replace with Redis in production)
 CARTS = {}
-client = MongoClient("mongodb_url")
+client = MongoClient("mongodb+srv://Cluster47062:XLxGVu26VDbfppvU@cluster47062.yhvoyo7.mongodb.net/")
 db = client.chatbot
 menu = db.menu
 
@@ -29,12 +29,18 @@ def add_to_cart(
     """Add item to cart"""
 
     item = menu.find_one(
-        {"item_name":item_name},
-        {
-            "_id": 0,
-            "price": 1
+    {
+        "dish_name": {
+            "$regex": f"^{item_name}$",
+            "$options": "i"
         }
-    )
+    },
+    {
+        "_id": 0,
+        "price": 1,
+        "dish_name": 1
+    }
+)
 
     if not item:
         return {

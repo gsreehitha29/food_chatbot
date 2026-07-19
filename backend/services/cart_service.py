@@ -15,7 +15,7 @@ CART RULES:
 
 import uuid
 from datetime import datetime, timezone
-from database import carts_collection
+from ..database import carts_collection
 
 
 def get_cart(user_id: str):

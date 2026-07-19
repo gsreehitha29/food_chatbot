@@ -1,7 +1,7 @@
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorClient
 
-client = AsyncIOMotorClient("mongodb-url")
+client = AsyncIOMotorClient("mongodb+srv://Cluster47062:XLxGVu26VDbfppvU@cluster47062.yhvoyo7.mongodb.net/")
 
 db = client.chatbot
 
